@@ -11,6 +11,7 @@ class Product {
   final String barcode;
   final List<String> images;
   final DateTime? createdAt;
+  final int? discount; // Chegirma foizi (0-100)
   
   // Variant tizimi uchun
   final bool hasVariants;
@@ -28,6 +29,7 @@ class Product {
     required this.barcode,
     this.images = const [],
     this.createdAt,
+    this.discount,
     this.hasVariants = false,
     this.availableSizes = const [],
     this.availableColors = const [],
@@ -46,6 +48,7 @@ class Product {
       barcode: data['barcode'] ?? '',
       images: List<String>.from(data['images'] ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      discount: data['discount'],
       hasVariants: data['hasVariants'] ?? false,
       availableSizes: List<String>.from(data['availableSizes'] ?? []),
       availableColors: List<String>.from(data['availableColors'] ?? []),
@@ -63,6 +66,7 @@ class Product {
       'barcode': barcode,
       'images': images,
       'createdAt': FieldValue.serverTimestamp(),
+      if (discount != null) 'discount': discount,
       'hasVariants': hasVariants,
       'availableSizes': availableSizes,
       'availableColors': availableColors,
@@ -79,6 +83,7 @@ class Product {
     int? quantity,
     String? barcode,
     List<String>? images,
+    int? discount,
     bool? hasVariants,
     List<String>? availableSizes,
     List<String>? availableColors,
@@ -94,6 +99,7 @@ class Product {
       barcode: barcode ?? this.barcode,
       images: images ?? this.images,
       createdAt: createdAt,
+      discount: discount ?? this.discount,
       hasVariants: hasVariants ?? this.hasVariants,
       availableSizes: availableSizes ?? this.availableSizes,
       availableColors: availableColors ?? this.availableColors,

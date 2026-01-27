@@ -19,6 +19,10 @@ class _POSScreenState extends State<POSScreen> {
   final List<CartItem> _cart = [];
   final List<CartItem> _parkedCarts = []; // Hold Cart uchun
   String _barcodeBuffer = '';
+  String _selectedCategory = 'Barchasi'; // Tanlangan kategoriya
+
+  // Kategoriyalar ro'yxati
+  final List<String> _categories = ['Barchasi', 'Ko\'ylak', 'Shim', 'Yubka', 'Bluzka'];
 
   int get _totalPrice => _cart.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
 
@@ -28,6 +32,54 @@ class _POSScreenState extends State<POSScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadProducts();
     });
+  }
+
+  // QR Scanner zaglushka
+  void _showQRStub() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GlassCard(
+          blur: 20,
+          opacity: 0.9,
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.qr_code_scanner,
+                size: 80,
+                color: AppTheme.accentOrange.withOpacity(0.5),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'QR Skaner',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Tez kunda ishga tushadi!\nPrinter ulagandan so\'ng faol bo\'ladi.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Yopish'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // RawKeyboardListener - Skaner uchun
@@ -222,7 +274,11 @@ class _POSScreenState extends State<POSScreen> {
                             decoration: InputDecoration(
                               hintText: 'Qidirish yoki shtrix kod...',
                               prefixIcon: const Icon(Icons.search),
-                              suffixIcon: const Icon(Icons.qr_code_scanner),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.qr_code_scanner),
+                                onPressed: _showQRStub,
+                                tooltip: 'QR Skaner',
+                              ),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.3),
                               border: OutlineInputBorder(
@@ -248,14 +304,28 @@ class _POSScreenState extends State<POSScreen> {
                   // Category Tabs
                   GlassCard(
                     padding: const EdgeInsets.all(8),
-                    child: Row(
-                      children: [
-                        _CategoryChip(label: 'Barchasi', isSelected: true),
-                        _CategoryChip(label: 'Ko\'ylak'),
-                        _CategoryChip(label: 'Shim'),
-                        _CategoryChip(label: 'Yubka'),
-                        _CategoryChip(label: 'Bluzka'),
-                      ],
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _categories.map((category) {
+                          final isSelected = _selectedCategory == category;
+                          return Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: Text(category),
+                              selected: isSelected,
+                              onSelected: (_) {
+                                setState(() => _selectedCategory = category);
+                              },
+                              selectedColor: AppTheme.accentOrange.withOpacity(0.2),
+                              checkmarkColor: AppTheme.accentOrange,
+                              labelStyle: TextStyle(
+                                color: isSelected ? AppTheme.accentOrange : AppTheme.textSecondary,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
 
@@ -269,11 +339,21 @@ class _POSScreenState extends State<POSScreen> {
                           return const Center(child: CircularProgressIndicator());
                         }
                         
-                        final filteredProducts = provider.products.where((p) {
-                          final query = _searchController.text.toLowerCase();
-                          return p.name.toLowerCase().contains(query) ||
-                                 p.barcode.contains(query);
-                        }).toList();
+                        // Avval kategoriya bo'yicha filter
+                        var filteredProducts = _selectedCategory == 'Barchasi'
+                            ? provider.products
+                            : provider.products.where((p) => 
+                                p.category.toLowerCase() == _selectedCategory.toLowerCase()
+                              ).toList();
+                        
+                        // Keyin qidiruv bo'yicha filter
+                        final query = _searchController.text.toLowerCase();
+                        if (query.isNotEmpty) {
+                          filteredProducts = filteredProducts.where((p) =>
+                            p.name.toLowerCase().contains(query) ||
+                            p.barcode.contains(query)
+                          ).toList();
+                        }
 
                         if (filteredProducts.isEmpty) {
                           return Center(
@@ -458,30 +538,6 @@ class _POSScreenState extends State<POSScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-
-  const _CategoryChip({required this.label, this.isSelected = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) {},
-        selectedColor: AppTheme.accentOrange.withOpacity(0.2),
-        checkmarkColor: AppTheme.accentOrange,
-        labelStyle: TextStyle(
-          color: isSelected ? AppTheme.accentOrange : AppTheme.textSecondary,
         ),
       ),
     );

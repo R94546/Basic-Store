@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/product_provider.dart';
@@ -86,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => context.go('/warehouse'),
                       child: const Text('Barchasini ko\'rish'),
                     ),
                   ],

@@ -5,6 +5,7 @@ import '../../screens/dashboard/dashboard_screen.dart';
 import '../../screens/warehouse/warehouse_screen.dart';
 import '../../screens/pos/pos_screen.dart';
 import '../../screens/orders/orders_screen.dart';
+import '../../screens/discount/discount_screen.dart';
 import '../../screens/analytics/analytics_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../theme/app_theme.dart';
@@ -46,6 +47,12 @@ class AppRouter {
             ),
           ),
           GoRoute(
+            path: '/discount',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DiscountScreen(),
+            ),
+          ),
+          GoRoute(
             path: '/analytics',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: AnalyticsScreen(),
@@ -80,6 +87,7 @@ class _MainShellState extends State<MainShell> {
     '/warehouse',
     '/pos',
     '/orders',
+    '/discount',
     '/analytics',
     '/settings',
   ];

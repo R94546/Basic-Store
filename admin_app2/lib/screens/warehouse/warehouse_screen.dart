@@ -151,6 +151,47 @@ class _ProductCard extends StatelessWidget {
 
   const _ProductCard({required this.product});
 
+  void _showEditDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _EditProductDialog(product: product),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.gradientStart,
+        title: const Text('O\'chirishni tasdiqlang', style: TextStyle(color: AppTheme.textPrimary)),
+        content: Text(
+          '"${product.name}" ni o\'chirishni xohlaysizmi?',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Bekor'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<ProductProvider>().deleteProduct(product.id!);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${product.name} o\'chirildi'),
+                  backgroundColor: AppTheme.accentRed,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentRed),
+            child: const Text('O\'chirish'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassCard(
@@ -158,46 +199,100 @@ class _ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image
+          // Image with actions
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(
-                      Icons.checkroom,
-                      size: 48,
-                      color: AppTheme.textSecondary.withValues(alpha: 0.4),
-                    ),
+            child: Stack(
+              children: [
+                // Product Image
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    image: product.images.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(product.images.first),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  // Variant badge
-                  if (product.hasVariants)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentOrange,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Variants',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                  child: product.images.isEmpty
+                      ? Center(
+                          child: Icon(
+                            Icons.checkroom,
+                            size: 48,
+                            color: AppTheme.textSecondary.withValues(alpha: 0.4),
                           ),
+                        )
+                      : null,
+                ),
+                // Variant badge
+                if (product.hasVariants)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentOrange,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Variants',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+                // Action buttons
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: PopupMenuButton<String>(
+                    icon: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.more_vert, color: Colors.white, size: 18),
+                    ),
+                    color: AppTheme.gradientStart,
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditDialog(context);
+                      } else if (value == 'delete') {
+                        _confirmDelete(context);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 18, color: AppTheme.accentOrange),
+                            SizedBox(width: 8),
+                            Text('Tahrirlash', style: TextStyle(color: AppTheme.textPrimary)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 18, color: AppTheme.accentRed),
+                            SizedBox(width: 8),
+                            Text('O\'chirish', style: TextStyle(color: AppTheme.accentRed)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -758,6 +853,171 @@ class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDi
           ],
         )),
       ],
+    );
+  }
+}
+
+/// Mahsulotni tahrirlash dialogi
+class _EditProductDialog extends StatefulWidget {
+  final Product product;
+
+  const _EditProductDialog({required this.product});
+
+  @override
+  State<_EditProductDialog> createState() => _EditProductDialogState();
+}
+
+class _EditProductDialogState extends State<_EditProductDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _priceController;
+  late TextEditingController _quantityController;
+  late String _selectedCategory;
+  bool _isSaving = false;
+
+  final List<String> categories = [
+    'Ko\'ylak', 'Shim', 'Yubka', 'Bluzka', 'Ko\'stum', 'Palto', 'Kurtka', 'Sport', 'Boshqa',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.product.name);
+    _priceController = TextEditingController(text: widget.product.price.toString());
+    _quantityController = TextEditingController(text: widget.product.quantity.toString());
+    _selectedCategory = widget.product.category;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _quantityController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final updatedProduct = widget.product.copyWith(
+        name: _nameController.text.trim(),
+        category: _selectedCategory,
+        price: int.parse(_priceController.text),
+        quantity: int.parse(_quantityController.text),
+      );
+
+      await context.read<ProductProvider>().updateProduct(updatedProduct);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${updatedProduct.name} yangilandi!'),
+            backgroundColor: AppTheme.accentGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xato: $e'), backgroundColor: AppTheme.accentRed),
+        );
+      }
+    }
+
+    setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: GlassCard(
+        blur: 20,
+        opacity: 0.95,
+        padding: const EdgeInsets.all(24),
+        child: SizedBox(
+          width: 400,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.edit, color: AppTheme.accentOrange),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Mahsulotni tahrirlash',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Tovar nomi', prefixIcon: Icon(Icons.shopping_bag)),
+                  validator: (v) => v?.isEmpty ?? true ? 'Nom kiriting' : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: const InputDecoration(labelText: 'Kategoriya', prefixIcon: Icon(Icons.category)),
+                  items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => setState(() => _selectedCategory = v!),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _priceController,
+                        decoration: const InputDecoration(labelText: 'Narxi', prefixIcon: Icon(Icons.attach_money)),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v?.isEmpty ?? true ? 'Narx kiriting' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _quantityController,
+                        decoration: const InputDecoration(labelText: 'Soni', prefixIcon: Icon(Icons.numbers)),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v?.isEmpty ?? true ? 'Son kiriting' : null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Bekor'))),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveChanges,
+                        child: _isSaving
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Saqlash'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

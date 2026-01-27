@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/product_provider.dart';
+import '../../providers/sale_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadProducts();
+      context.read<SaleProvider>().loadSales();
     });
   }
 
@@ -36,36 +38,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
           
           const SizedBox(height: 24),
           
-          // Stats Row
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  title: "Jami savdo",
-                  value: currencyFormat.format(45200000),
-                  icon: Icons.attach_money_rounded,
-                  iconColor: AppTheme.accentGreen,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _StatCard(
-                  title: "Buyurtmalar soni",
-                  value: "1,245",
-                  icon: Icons.shopping_bag_rounded,
-                  iconColor: AppTheme.accentOrange,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _StatCard(
-                  title: "O'rtacha chek",
-                  value: currencyFormat.format(350000),
-                  icon: Icons.receipt_long_rounded,
-                  iconColor: Colors.blue,
-                ),
-              ),
-            ],
+          // Stats Row - REAL DATA
+          Consumer<SaleProvider>(
+            builder: (context, saleProvider, _) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      title: "Jami savdo",
+                      value: currencyFormat.format(saleProvider.allTimeTotal),
+                      icon: Icons.attach_money_rounded,
+                      iconColor: AppTheme.accentGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _StatCard(
+                      title: "Savdolar soni",
+                      value: NumberFormat.decimalPattern().format(saleProvider.allTimeCount),
+                      icon: Icons.shopping_bag_rounded,
+                      iconColor: AppTheme.accentOrange,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _StatCard(
+                      title: "O'rtacha chek",
+                      value: currencyFormat.format(saleProvider.allTimeAverageCheck),
+                      icon: Icons.receipt_long_rounded,
+                      iconColor: Colors.blue,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           
           const SizedBox(height: 24),

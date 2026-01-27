@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
+import '../../models/sale.dart';
 import '../../providers/product_provider.dart';
+import '../../providers/sale_provider.dart';
 
 class POSScreen extends StatefulWidget {
   const POSScreen({super.key});
@@ -24,7 +26,22 @@ class _POSScreenState extends State<POSScreen> {
   // Kategoriyalar ro'yxati
   final List<String> _categories = ['Barchasi', 'Ko\'ylak', 'Shim', 'Yubka', 'Bluzka'];
 
-  int get _totalPrice => _cart.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+  // Skidka bilan narx hisoblash
+  int _getDiscountedPrice(Product product) {
+    if (product.discount != null && product.discount! > 0) {
+      return (product.price * (100 - product.discount!) / 100).round();
+    }
+    return product.price;
+  }
+
+  // Jami narx (skidka bilan)
+  int get _totalPrice => _cart.fold(0, (sum, item) => sum + (_getDiscountedPrice(item.product) * item.quantity));
+  
+  // Asl narx (skidkasiz)
+  int get _originalPrice => _cart.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+  
+  // Chegirma summasi
+  int get _discountAmount => _originalPrice - _totalPrice;
 
   @override
   void initState() {
@@ -162,7 +179,7 @@ class _POSScreenState extends State<POSScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         child: GlassCard(
           blur: 20,
@@ -187,7 +204,35 @@ class _POSScreenState extends State<POSScreen> {
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                // Skidka mavjud bo'lsa ko'rsatish
+                if (_discountAmount > 0) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Asl narx:', style: TextStyle(color: AppTheme.textSecondary)),
+                      Text(
+                        '$_originalPrice so\'m',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Chegirma:', style: TextStyle(color: AppTheme.accentRed)),
+                      Text(
+                        '-$_discountAmount so\'m',
+                        style: const TextStyle(color: AppTheme.accentRed, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Text(
                   'Jami: $_totalPrice so\'m',
                   style: const TextStyle(
@@ -201,22 +246,43 @@ class _POSScreenState extends State<POSScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(dialogContext),
                         child: const Text('Bekor'),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _clearCart();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('To\'lov muvaffaqiyatli!'),
-                              backgroundColor: AppTheme.accentGreen,
-                            ),
+                        onPressed: () async {
+                          // Savdoni saqlash
+                          final sale = Sale(
+                            createdAt: DateTime.now(),
+                            totalAmount: _totalPrice,
+                            originalAmount: _originalPrice,
+                            discountAmount: _discountAmount,
+                            items: _cart.map((item) => SaleItem(
+                              productId: item.product.id ?? '',
+                              productName: item.product.name,
+                              quantity: item.quantity,
+                              unitPrice: _getDiscountedPrice(item.product),
+                              originalPrice: item.product.price,
+                              discount: item.product.discount,
+                            )).toList(),
+                            paymentMethod: 'cash',
                           );
+                          
+                          await context.read<SaleProvider>().addSale(sale);
+                          
+                          if (mounted) {
+                            Navigator.pop(dialogContext);
+                            _clearCart();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('To\'lov muvaffaqiyatli saqlandi!'),
+                                backgroundColor: AppTheme.accentGreen,
+                              ),
+                            );
+                          }
                         },
                         child: const Text('Tasdiqlash'),
                       ),

@@ -2,11 +2,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
 import '../../models/product_variant.dart';
 import '../../providers/product_provider.dart';
+import '../../widgets/image_picker_widget.dart';
+import '../../services/image_upload_service.dart';
 
 class WarehouseScreen extends StatefulWidget {
   const WarehouseScreen({super.key});
@@ -426,6 +429,10 @@ class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDi
   // Variant jadvali: {size_color: quantity}
   final Map<String, int> _variantQuantities = {};
   
+  // Rasmlar
+  List<PlatformFile> _selectedImages = [];
+  final _imageUploadService = ImageUploadService();
+  
   final List<String> categories = [
     'Ko\'ylak', 'Shim', 'Yubka', 'Bluzka', 'Ko\'stum', 'Palto', 'Kurtka', 'Sport', 'Boshqa',
   ];
@@ -467,6 +474,18 @@ class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDi
     try {
       final provider = context.read<ProductProvider>();
       
+      // Vaqtinchalik product ID rasm yuklash uchun
+      final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // Rasmlarni yuklash
+      List<String> imageUrls = [];
+      if (_selectedImages.isNotEmpty) {
+        imageUrls = await _imageUploadService.uploadMultipleImages(
+          files: _selectedImages,
+          productId: tempId,
+        );
+      }
+      
       if (_hasVariants) {
         // Variantli mahsulot
         final product = Product(
@@ -475,6 +494,7 @@ class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDi
           price: int.parse(_priceController.text),
           quantity: 0, // Variantlardan hisoblanadi
           barcode: _generateBarcode(),
+          images: imageUrls,
           hasVariants: true,
           availableSizes: _selectedSizes.toList(),
           availableColors: _selectedColors.toList(),
@@ -515,6 +535,7 @@ class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDi
           price: int.parse(_priceController.text),
           quantity: _variantQuantities.values.fold(0, (a, b) => a + b),
           barcode: _generateBarcode(),
+          images: imageUrls,
           hasVariants: false,
         );
 
@@ -595,6 +616,16 @@ class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDi
                       icon: const Icon(Icons.close),
                     ),
                   ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Rasm yuklash
+                ImagePickerWidget(
+                  onImagesSelected: (files) {
+                    setState(() => _selectedImages = files);
+                  },
+                  maxImages: 5,
                 ),
                 
                 const SizedBox(height: 16),

@@ -10,6 +10,8 @@ import 'providers/product_provider.dart';
 import 'providers/telegram_provider.dart';
 import 'providers/printer_provider.dart';
 import 'providers/order_provider.dart';
+import 'providers/sale_provider.dart';
+import 'providers/category_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +38,8 @@ class AdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TelegramProvider()),
         ChangeNotifierProvider(create: (_) => PrinterProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => SaleProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
       ],
       child: MaterialApp.router(
         title: 'Ayollar Kiyim - Admin',

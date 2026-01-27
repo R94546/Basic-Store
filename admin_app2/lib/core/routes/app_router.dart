@@ -6,6 +6,8 @@ import '../../screens/warehouse/warehouse_screen.dart';
 import '../../screens/pos/pos_screen.dart';
 import '../../screens/orders/orders_screen.dart';
 import '../../screens/discount/discount_screen.dart';
+import '../../screens/sales/sales_history_screen.dart';
+import '../../screens/category/category_screen.dart';
 import '../../screens/analytics/analytics_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../theme/app_theme.dart';
@@ -53,9 +55,21 @@ class AppRouter {
             ),
           ),
           GoRoute(
+            path: '/sales',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SalesHistoryScreen(),
+            ),
+          ),
+          GoRoute(
             path: '/analytics',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: AnalyticsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/categories',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CategoryScreen(),
             ),
           ),
           GoRoute(
@@ -88,7 +102,9 @@ class _MainShellState extends State<MainShell> {
     '/pos',
     '/orders',
     '/discount',
+    '/sales',
     '/analytics',
+    '/categories',
     '/settings',
   ];
 

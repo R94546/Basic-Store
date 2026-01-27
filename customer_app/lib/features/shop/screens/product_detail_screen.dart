@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
 import '../providers/cart_provider.dart';
+import '../providers/wishlist_provider.dart';
 import '../models/cart_item.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -84,7 +85,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final price = widget.product['price'] ?? 150000;
     final description = widget.product['description'] ?? 'Long dress made of linen blend fabric. V-neckline and thin straps. Side vents at hem. Hidden side zip closure.';
     final cart = context.watch<CartProvider>();
+    final wishlist = context.watch<WishlistProvider>();
     final inCart = cart.isInCart(widget.productId, size: _selectedSize, color: _selectedColor);
+    final inWishlist = wishlist.isInWishlist(widget.productId);
 
     return Scaffold(
       backgroundColor: CustomerTheme.background,
@@ -98,7 +101,49 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 expandedHeight: MediaQuery.of(context).size.height * 0.85,
                 pinned: false,
                 backgroundColor: Colors.white,
-                leading: const SizedBox(),
+                leading: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+                    ),
+                    child: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                actions: [
+                  // Wishlist button
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+                      ),
+                      child: Icon(
+                        inWishlist ? Icons.favorite : Icons.favorite_border,
+                        color: inWishlist ? Colors.red : Colors.black,
+                        size: 20,
+                      ),
+                    ),
+                    onPressed: () async {
+                      await wishlist.toggleWishlist(widget.productId);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(inWishlist ? 'WISHLIST\'DAN O\'CHIRILDI' : 'WISHLIST\'GA QO\'SHILDI'),
+                            backgroundColor: Colors.black,
+                            duration: const Duration(milliseconds: 1200),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: PageView.builder(
                     itemCount: _images.length,

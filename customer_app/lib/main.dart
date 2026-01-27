@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'features/shop/customer_shell.dart';
 import 'features/shop/providers/cart_provider.dart';
 import 'features/shop/providers/order_provider.dart';
+import 'features/shop/providers/wishlist_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ class CustomerApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => WishlistProvider()),
       ],
       child: MaterialApp(
         title: 'Basic Store',

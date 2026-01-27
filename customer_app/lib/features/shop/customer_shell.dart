@@ -6,8 +6,9 @@ import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/menu_screen.dart';
 import 'screens/cart_screen.dart';
-import 'screens/profile_screen.dart';
+import 'screens/wishlist_screen.dart';
 import 'providers/cart_provider.dart';
+import 'providers/wishlist_provider.dart';
 
 class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
@@ -24,12 +25,13 @@ class _CustomerShellState extends State<CustomerShell> {
     SearchScreen(),
     MenuScreen(),
     CartScreen(),
-    ProfileScreen(),
+    WishlistScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
+    final wishlist = context.watch<WishlistProvider>();
     
     return Scaffold(
       body: IndexedStack(
@@ -82,10 +84,11 @@ class _CustomerShellState extends State<CustomerShell> {
                   badge: cart.itemCount,
                 ),
                 _NavItem(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
+                  icon: Icons.favorite_border,
+                  activeIcon: Icons.favorite,
                   isActive: _currentIndex == 4,
                   onTap: () => setState(() => _currentIndex = 4),
+                  badge: wishlist.count,
                 ),
               ],
             ),

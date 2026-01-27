@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "24388481813",
+    "project_id": "zara-shop-automation-uz",
+    "storage_bucket": "zara-shop-automation-uz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:24388481813:android:55934b22eb1cb48a82ef1c",
+        "android_client_info": {
+          "package_name": "com.elriztechnology.flutter_pos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "24388481813-mismrh8ki4imvo4qtl6m7r1qi72uumis.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX_2W3_ppzlxsAW_k_kZLiUj0clOBa3vI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "24388481813-mismrh8ki4imvo4qtl6m7r1qi72uumis.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "24388481813-i4hgqs8se67nn04t9p29ovfg47p08s98.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "elriztechnology.com.flutterPos"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:24388481813:android:7e404f449cd24bc782ef1c",
+        "android_client_info": {
+          "package_name": "com.zarastyle.customer_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "24388481813-mismrh8ki4imvo4qtl6m7r1qi72uumis.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX_2W3_ppzlxsAW_k_kZLiUj0clOBa3vI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "24388481813-mismrh8ki4imvo4qtl6m7r1qi72uumis.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "24388481813-i4hgqs8se67nn04t9p29ovfg47p08s98.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "elriztechnology.com.flutterPos"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Kategoriya modeli
-class Category {
+/// Tovar kategoriyasi modeli
+class ProductCategory {
   final String? id;
   final String name;
   final String? icon;  // Icon nomi yoki emoji
@@ -10,7 +10,7 @@ class Category {
   final int order;  // Tartib
   final DateTime? createdAt;
 
-  Category({
+  ProductCategory({
     this.id,
     required this.name,
     this.icon,
@@ -20,9 +20,9 @@ class Category {
     this.createdAt,
   });
 
-  factory Category.fromFirestore(DocumentSnapshot doc) {
+  factory ProductCategory.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return Category(
+    return ProductCategory(
       id: doc.id,
       name: data['name'] ?? '',
       icon: data['icon'],
@@ -44,7 +44,7 @@ class Category {
     };
   }
 
-  Category copyWith({
+  ProductCategory copyWith({
     String? id,
     String? name,
     String? icon,
@@ -53,7 +53,7 @@ class Category {
     int? order,
     DateTime? createdAt,
   }) {
-    return Category(
+    return ProductCategory(
       id: id ?? this.id,
       name: name ?? this.name,
       icon: icon ?? this.icon,

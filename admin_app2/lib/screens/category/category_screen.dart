@@ -109,7 +109,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           final provider = context.read<CategoryProvider>();
           final order = provider.categories.length + 1;
           
-          await provider.addCategory(Category(
+          await provider.addCategory(ProductCategory(
             name: name,
             icon: icon,
             order: order,
@@ -121,7 +121,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  void _showEditCategoryDialog(Category category) {
+  void _showEditCategoryDialog(ProductCategory category) {
     showDialog(
       context: context,
       builder: (context) => _CategoryDialog(
@@ -140,7 +140,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  void _confirmDelete(Category category) {
+  void _confirmDelete(ProductCategory category) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -178,7 +178,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 }
 
 class _CategoryListItem extends StatelessWidget {
-  final Category category;
+  final ProductCategory category;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -264,7 +264,7 @@ class _CategoryListItem extends StatelessWidget {
 }
 
 class _CategoryDialog extends StatefulWidget {
-  final Category? category;
+  final ProductCategory? category;
   final Future<void> Function(String name, String? icon) onSave;
 
   const _CategoryDialog({

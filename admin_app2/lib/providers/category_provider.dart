@@ -7,10 +7,10 @@ import '../models/category.dart';
 class CategoryProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
-  List<Category> _categories = [];
+  List<ProductCategory> _categories = [];
   bool _isLoading = false;
   
-  List<Category> get categories => _categories;
+  List<ProductCategory> get categories => _categories;
   bool get isLoading => _isLoading;
   
   // Kategory nomlari ro'yxati (dropdown lar uchun)
@@ -27,7 +27,7 @@ class CategoryProvider extends ChangeNotifier {
           .orderBy('order')
           .get();
 
-      _categories = snapshot.docs.map((doc) => Category.fromFirestore(doc)).toList();
+      _categories = snapshot.docs.map((doc) => ProductCategory.fromFirestore(doc)).toList();
       
       // Agar kategoriyalar bo'sh bo'lsa, default qo'shish
       if (_categories.isEmpty) {
@@ -56,25 +56,25 @@ class CategoryProvider extends ChangeNotifier {
         .collection('categories')
         .orderBy('order')
         .get();
-    _categories = snapshot.docs.map((doc) => Category.fromFirestore(doc)).toList();
+    _categories = snapshot.docs.map((doc) => ProductCategory.fromFirestore(doc)).toList();
   }
 
-  List<Category> _getDefaultCategories() {
+  List<ProductCategory> _getDefaultCategories() {
     return [
-      Category(name: "Ko'ylak", icon: '👗', order: 1),
-      Category(name: 'Shim', icon: '👖', order: 2),
-      Category(name: 'Yubka', icon: '🩱', order: 3),
-      Category(name: 'Bluzka', icon: '👚', order: 4),
-      Category(name: "Ko'stum", icon: '🥻', order: 5),
-      Category(name: 'Palto', icon: '🧥', order: 6),
-      Category(name: 'Kurtka', icon: '🧥', order: 7),
-      Category(name: 'Sport', icon: '🏃', order: 8),
-      Category(name: 'Boshqa', icon: '📦', order: 99),
+      ProductCategory(name: "Ko'ylak", icon: '👗', order: 1),
+      ProductCategory(name: 'Shim', icon: '👖', order: 2),
+      ProductCategory(name: 'Yubka', icon: '🩱', order: 3),
+      ProductCategory(name: 'Bluzka', icon: '👚', order: 4),
+      ProductCategory(name: "Ko'stum", icon: '🥻', order: 5),
+      ProductCategory(name: 'Palto', icon: '🧥', order: 6),
+      ProductCategory(name: 'Kurtka', icon: '🧥', order: 7),
+      ProductCategory(name: 'Sport', icon: '🏃', order: 8),
+      ProductCategory(name: 'Boshqa', icon: '📦', order: 99),
     ];
   }
 
   /// Yangi kategoriya qo'shish
-  Future<String?> addCategory(Category category) async {
+  Future<String?> addCategory(ProductCategory category) async {
     try {
       final docRef = await _firestore.collection('categories').add(category.toFirestore());
       
@@ -90,7 +90,7 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   /// Kategoriyani yangilash
-  Future<bool> updateCategory(String id, Category category) async {
+  Future<bool> updateCategory(String id, ProductCategory category) async {
     try {
       await _firestore.collection('categories').doc(id).update({
         'name': category.name,
@@ -140,7 +140,7 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   /// Kategoriya nomini olish
-  Category? findByName(String name) {
+  ProductCategory? findByName(String name) {
     try {
       return _categories.firstWhere((c) => c.name.toLowerCase() == name.toLowerCase());
     } catch (e) {

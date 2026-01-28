@@ -82,7 +82,7 @@ class AppTheme {
   );
 }
 
-/// Gradient fon - barcha sahifalar uchun
+/// Gradient fon - rasm + gradient overlay
 class GradientBackground extends StatelessWidget {
   final Widget child;
 
@@ -90,20 +90,39 @@ class GradientBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.gradientStart,
-            AppTheme.gradientMiddle,
-            AppTheme.gradientEnd,
-          ],
-          stops: [0.0, 0.5, 1.0],
+    return Stack(
+      children: [
+        // Background image
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/background.jpg',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.gradientStart,
+                    AppTheme.gradientMiddle,
+                    AppTheme.gradientEnd,
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
-      child: child,
+        
+        // Dark overlay for glassmorphism effect
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.3),
+          ),
+        ),
+        
+        // Content
+        child,
+      ],
     );
   }
 }

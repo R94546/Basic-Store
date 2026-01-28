@@ -14,6 +14,7 @@ class Product {
   final bool hasVariants;
   final List<String> availableSizes;
   final List<String> availableColors;
+  final int? discount;
 
   Product({
     this.id,
@@ -29,6 +30,7 @@ class Product {
     this.hasVariants = false,
     this.availableSizes = const [],
     this.availableColors = const [],
+    this.discount,
   });
 
   factory Product.fromFirestore(DocumentSnapshot doc) {
@@ -47,6 +49,8 @@ class Product {
       hasVariants: data['hasVariants'] ?? false,
       availableSizes: List<String>.from(data['availableSizes'] ?? []),
       availableColors: List<String>.from(data['availableColors'] ?? []),
+      discount: data['discount'],
     );
   }
 }
+

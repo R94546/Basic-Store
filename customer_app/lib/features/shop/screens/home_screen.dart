@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:video_player/video_player.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
-import 'package:customer_app/core/theme/app_theme.dart';
-import '../models/product_model.dart';
-import 'product_detail_screen.dart';
+import '../providers/video_background_provider.dart';
 
+/// ZARA uslubida HomeScreen - video orqa fon bilan
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -15,238 +15,161 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _pageController = PageController();
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeVideo();
+    });
+  }
+
+  Future<void> _initializeVideo() async {
+    final provider = context.read<VideoBackgroundProvider>();
+    await provider.initialize();
+    
+    _videoController = VideoPlayerController.asset(provider.currentVideoPath);
+    
+    try {
+      await _videoController!.initialize();
+      _videoController!.setLooping(true);
+      _videoController!.setVolume(0); // Tovushsiz
+      await _videoController!.play();
+      
+      if (mounted) {
+        setState(() => _isVideoInitialized = true);
+      }
+    } catch (e) {
+      debugPrint('Video initialization error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ZARA-style Logo at top
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                'BASIC STORE',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4.0,
-                  color: Colors.black,
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Video Background (full screen)
+          if (_isVideoInitialized && _videoController != null)
+            Positioned.fill(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController!.value.size.width,
+                  height: _videoController!.value.size.height,
+                  child: VideoPlayer(_videoController!),
                 ),
               ),
             ),
-            
-            // Product Cards (Scrollable)
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('products')
-                    .orderBy('createdAt', descending: true)
-                    .limit(10)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: Colors.black, strokeWidth: 1));
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const _EmptyState();
-                  }
-
-                  final products = snapshot.data!.docs
-                      .map((doc) => Product.fromFirestore(doc))
-                      .toList();
-
-                  return PageView.builder(
-                    controller: _pageController,
-                    scrollDirection: Axis.vertical,
-                    itemCount: products.length,
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return _ProductCard(
-                        product: product,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProductDetailScreen(
-                                productId: product.id!,
-                                product: {
-                                  'name': product.name,
-                                  'price': product.price,
-                                  'description': 'Premium quality ${product.name}',
-                                  'images': product.images,
-                                  'availableSizes': product.availableSizes,
-                                  'availableColors': product.availableColors,
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+          
+          // Gradient overlay (ZARA style - darker at bottom)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.6),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.checkroom, color: Colors.grey.shade300, size: 80),
-          const SizedBox(height: 20),
-          const Text(
-            'NO PRODUCTS YET',
-            style: TextStyle(
-              fontSize: 14,
-              letterSpacing: 2.0,
-              color: Colors.grey,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProductCard extends StatelessWidget {
-  final Product product;
-  final VoidCallback onTap;
-
-  const _ProductCard({
-    required this.product,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final imageUrl = product.images.isNotEmpty 
-        ? product.images.first 
-        : 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=1383&auto=format&fit=crop';
-    
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          children: [
-            // Product Image Card (ZARA style)
-            Expanded(
-              child: Stack(
-                children: [
-                  // Image
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(0), // ZARA uses sharp corners
-                    ),
-                    child: ClipRRect(
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded / 
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              color: Colors.black,
-                              strokeWidth: 1,
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Icon(Icons.checkroom, size: 60, color: Colors.grey.shade300),
-                          );
-                        },
-                      ),
-                    ),
+          
+          // Content overlay
+          SafeArea(
+            child: Column(
+              children: [
+                const Spacer(),
+                
+                // BASIC STORE Logo (center, ZARA style)
+                Text(
+                  'BASIC\nSTORE',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 12.0,
+                    height: 1.1,
+                    color: Colors.white,
                   ),
-                  
-                  // Overlay Text (Top Left) - Like "THE ITEM" in ZARA
-                  Positioned(
-                    top: 20,
-                    left: 20,
-                    child: Text(
-                      product.category.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Didot',
-                        color: Colors.black87,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Product Info (Bottom Right aligned)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                ),
+                
+                const Spacer(),
+                
+                // Bottom buttons (ZARA style)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                  child: Column(
                     children: [
-                      Text(
-                        product.name.toUpperCase(),
-                        style: const TextStyle(
+                      // Primary button
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // Navigate to shop - will use BottomNav automatically
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white, width: 1),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const RoundedRectangleBorder(),
+                          ),
+                          child: const Text(
+                            'KIRISH',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              letterSpacing: 2,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Location info
+                      const Text(
+                        'TASHKENT, UZBEKISTAN',
+                        style: TextStyle(
+                          color: Colors.white60,
                           fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'BASIC STORE COLLECTION',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        'NEW SEASON',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade600,
-                          letterSpacing: 0.5,
+                          letterSpacing: 1.5,
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Loading indicator while video loads
+          if (!_isVideoInitialized)
+            const Positioned.fill(
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 1,
+                ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

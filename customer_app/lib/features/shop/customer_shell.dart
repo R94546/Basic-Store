@@ -49,12 +49,20 @@ class _CustomerShellState extends State<CustomerShell> {
             top: BorderSide(color: Colors.grey.shade200, width: 0.5),
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
+        child: Padding(
+          // iPhone home-indikatori ustida joylashishi uchun pastdan masofa
+          padding: EdgeInsets.only(
+            left: 8,
+            right: 8,
+            top: 12,
+            bottom: 12 +
+                (MediaQuery.viewPaddingOf(context).bottom > 0
+                    ? MediaQuery.viewPaddingOf(context).bottom
+                    : 16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
                 _NavItem(
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home,
@@ -104,8 +112,7 @@ class _CustomerShellState extends State<CustomerShell> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -128,14 +135,18 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(
-            isActive ? activeIcon : icon,
-            color: isActive ? Colors.black : Colors.grey,
-            size: 24,
-          ),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        // Bosish maydonini kattalashtirish
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? Colors.black : Colors.grey,
+              size: 26,
+            ),
           if (badge != null && badge! > 0)
             Positioned(
               right: -8,
@@ -161,7 +172,8 @@ class _NavItem extends StatelessWidget {
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

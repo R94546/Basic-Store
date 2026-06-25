@@ -12,6 +12,7 @@ extension type _Telegram(JSObject _) implements JSObject {
 extension type _WebApp(JSObject _) implements JSObject {
   external void ready();
   external void expand();
+  external void disableVerticalSwipes();
   external _InitData? get initDataUnsafe;
 }
 
@@ -72,5 +73,9 @@ void ready() {
 void expand() {
   try {
     _webApp?.expand();
+  } catch (_) {}
+  // Vertikal swipe (pastga surib yopish) ni o'chirish — scroll ishlashi uchun
+  try {
+    _webApp?.disableVerticalSwipes();
   } catch (_) {}
 }

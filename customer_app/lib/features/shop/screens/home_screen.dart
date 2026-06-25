@@ -137,11 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
       child: Row(
         children: [
-          const Text('BASIC STORE',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 3)),
+          Image.asset('assets/images/logo.png', height: 30),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.black),

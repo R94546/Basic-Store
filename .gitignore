@@ -45,3 +45,6 @@ coverage/
 .pub-cache/
 .pub/
 pubspec.lock
+
+# Firebase
+.firebase/

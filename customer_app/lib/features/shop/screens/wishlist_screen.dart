@@ -87,16 +87,8 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ProductDetailScreen(
-                        productId: product.id!,
-                        product: {
-                          'name': product.name,
-                          'price': product.price,
-                          'images': product.images,
-                          'availableSizes': product.availableSizes,
-                          'availableColors': product.availableColors,
-                        },
-                      ),
+                      builder: (context) =>
+                          ProductDetailScreen(product: product),
                     ),
                   );
                 },

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
+import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'orders_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -8,6 +11,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+
     return Scaffold(
       backgroundColor: CustomerTheme.background,
       body: SafeArea(
@@ -16,88 +21,58 @@ class ProfileScreen extends StatelessWidget {
             // Header
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'MY ACCOUNT',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                    ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  loc.t('profile.title').toUpperCase(),
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined),
-                    onPressed: () {},
-                  ),
-                ],
+                ),
               ),
             ),
-            
+
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
-                  // Login Banner
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    color: Colors.black,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'LOG IN TO YOUR ACCOUNT',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Save your details and check your orders status.',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () {},
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.white),
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: const Text('LOG IN'),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                ),
-                                child: const Text('REGISTER'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                  // Language switch
+                  Text(
+                    loc.t('profile.language').toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
                     ),
                   ),
-                  
-                  const SizedBox(height: 48),
-                  
-                  // Menu Items (Text Only)
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _LangChip(
+                          label: "O'zbekcha",
+                          selected: loc.isUz,
+                          onTap: () => loc.setLang('uz'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _LangChip(
+                          label: 'Русский',
+                          selected: !loc.isUz,
+                          onTap: () => loc.setLang('ru'),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // My orders
                   _ProfileMenuItem(
-                    title: 'MY ORDERS',
+                    title: loc.t('profile.myOrders').toUpperCase(),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -107,16 +82,14 @@ class ProfileScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  _ProfileMenuItem(title: 'MY DETAILS', onTap: () {}),
-                  _ProfileMenuItem(title: 'ADDRESS BOOK', onTap: () {}),
-                  _ProfileMenuItem(title: 'WALLET', onTap: () {}),
-                  _ProfileMenuItem(title: 'NOTIFICATIONS', onTap: () {}),
-                  
-                  const SizedBox(height: 48),
-                  
-                  _ProfileMenuItem(title: 'HELP', isSmall: true, onTap: () {}),
-                  _ProfileMenuItem(title: 'SETTINGS', isSmall: true, onTap: () {}),
-                  _ProfileMenuItem(title: 'ABOUT US', isSmall: true, onTap: () {}),
+                  _ProfileMenuItem(
+                    title: loc.t('profile.contact').toUpperCase(),
+                    onTap: () {},
+                  ),
+                  _ProfileMenuItem(
+                    title: loc.t('profile.about').toUpperCase(),
+                    onTap: () {},
+                  ),
                 ],
               ),
             ),
@@ -127,14 +100,48 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
+class _LangChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LangChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? Colors.black : Colors.white,
+          border: Border.all(color: Colors.black),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.black,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileMenuItem extends StatelessWidget {
   final String title;
-  final bool isSmall;
   final VoidCallback onTap;
 
   const _ProfileMenuItem({
     required this.title,
-    this.isSmall = false,
     required this.onTap,
   });
 
@@ -149,15 +156,14 @@ class _ProfileMenuItem extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
-                fontSize: isSmall ? 12 : 14,
-                fontWeight: isSmall ? FontWeight.normal : FontWeight.bold,
-                letterSpacing: isSmall ? 1.0 : 1.5,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
                 color: Colors.black,
               ),
             ),
-            if (!isSmall)
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
       ),

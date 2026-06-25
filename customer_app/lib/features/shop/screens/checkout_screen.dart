@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
+import 'package:customer_app/core/l10n/locale_provider.dart';
 import '../providers/cart_provider.dart';
 import '../models/order_model.dart';
 
@@ -20,7 +22,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
   bool _isLoading = false;
 
   @override
@@ -32,48 +34,64 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  /// Telefon raqamini normallashtirish: faqat raqamlar va boshidagi +
+  String _normalizePhone(String raw) {
+    return raw.replaceAll(RegExp(r'[^\d+]'), '');
+  }
+
   Future<void> _placeOrder() async {
+    final loc = context.read<LocaleProvider>();
     if (!_formKey.currentState!.validate()) return;
-    
+
     final cart = context.read<CartProvider>();
     if (cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your cart is empty')),
+        SnackBar(content: Text(loc.t('cart.empty'))),
       );
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
+      final normalizedPhone = _normalizePhone(_phoneController.text.trim());
+
       final order = CustomerOrder(
         customerName: _nameController.text.trim(),
-        customerPhone: _phoneController.text.trim(),
+        customerPhone: normalizedPhone,
         customerAddress: _addressController.text.trim(),
         items: cart.items,
         subtotal: cart.subtotal,
         deliveryFee: cart.deliveryFee,
         total: cart.total,
-        notes: _notesController.text.trim().isNotEmpty 
-            ? _notesController.text.trim() 
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
             : null,
         status: OrderStatus.pending,
       );
-      
+
       // Save to Firestore
       await FirebaseFirestore.instance.collection('orders').add(order.toMap());
-      
+
+      // Mijoz telefon raqamini saqlash (buyurtmalar tarixi uchun)
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('customer_phone', normalizedPhone);
+      } catch (_) {
+        // Saqlashda xatolik bo'lsa ham buyurtma muvaffaqiyatli
+      }
+
       // Clear cart
       cart.clear();
-      
+
       if (!mounted) return;
-      
+
       // Show success and navigate back
       _showSuccessDialog();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error placing order: $e')),
+        SnackBar(content: Text('${loc.t('common.error')}: $e')),
       );
     } finally {
       if (mounted) {
@@ -83,6 +101,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _showSuccessDialog() {
+    final loc = context.read<LocaleProvider>();
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -97,7 +116,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'ORDER PLACED',
+              loc.t('checkout.success'),
+              textAlign: TextAlign.center,
               style: GoogleFonts.playfairDisplay(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -106,7 +126,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Thank you for your order!\nWe will contact you shortly.',
+              loc.t('checkout.successDesc'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey[600],
@@ -128,7 +148,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: const RoundedRectangleBorder(),
               ),
-              child: const Text('CONTINUE SHOPPING'),
+              child: Text(loc.t('cart.continueShopping').toUpperCase()),
             ),
           ),
         ],
@@ -139,7 +159,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    
+    final loc = context.watch<LocaleProvider>();
+
     return Scaffold(
       backgroundColor: CustomerTheme.background,
       appBar: AppBar(
@@ -150,7 +171,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'CHECKOUT',
+          loc.t('checkout.title').toUpperCase(),
           style: GoogleFonts.playfairDisplay(
             color: Colors.black,
             fontSize: 18,
@@ -166,76 +187,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             // Contact Information
-            _SectionTitle(title: 'CONTACT INFORMATION'),
+            _SectionTitle(title: loc.t('checkout.name').toUpperCase()),
             const SizedBox(height: 16),
-            
+
             _StyledTextField(
               controller: _nameController,
-              label: 'Full Name',
-              hint: 'Enter your full name',
+              label: loc.t('checkout.name'),
+              hint: loc.t('checkout.name'),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your name';
+                  return loc.t('checkout.required');
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
+
             _StyledTextField(
               controller: _phoneController,
-              label: 'Phone Number',
+              label: loc.t('checkout.phone'),
               hint: '+998 XX XXX XX XX',
               keyboardType: TextInputType.phone,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your phone number';
+                  return loc.t('checkout.required');
                 }
-                if (value.length < 9) {
-                  return 'Please enter a valid phone number';
+                if (_normalizePhone(value).replaceAll('+', '').length < 9) {
+                  return loc.t('checkout.required');
                 }
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Delivery Address
-            _SectionTitle(title: 'DELIVERY ADDRESS'),
+            _SectionTitle(title: loc.t('checkout.address').toUpperCase()),
             const SizedBox(height: 16),
-            
+
             _StyledTextField(
               controller: _addressController,
-              label: 'Address',
-              hint: 'Street, building, apartment',
+              label: loc.t('checkout.address'),
+              hint: loc.t('checkout.address'),
               maxLines: 2,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your delivery address';
+                  return loc.t('checkout.required');
                 }
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Order Notes
-            _SectionTitle(title: 'ORDER NOTES (OPTIONAL)'),
+            _SectionTitle(title: loc.t('checkout.notes').toUpperCase()),
             const SizedBox(height: 16),
-            
+
             _StyledTextField(
               controller: _notesController,
-              label: 'Notes',
-              hint: 'Special requests, delivery instructions...',
+              label: loc.t('checkout.notes'),
+              hint: loc.t('checkout.notes'),
               maxLines: 3,
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Order Summary
-            _SectionTitle(title: 'ORDER SUMMARY'),
+            _SectionTitle(title: loc.t('cart.total').toUpperCase()),
             const SizedBox(height: 16),
-            
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -245,30 +266,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 children: [
                   ...cart.items.map((item) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${item.name.toUpperCase()} x${item.quantity}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${item.name.toUpperCase()} x${item.quantity}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Text(
+                              '${_formatPrice(item.totalPrice)} ${loc.t('common.sum')}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '${_formatPrice(item.totalPrice)} UZS',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  )),
-                  
+                      )),
+
                   Divider(color: Colors.grey[300]),
-                  
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Subtotal', style: TextStyle(fontSize: 12)),
-                      Text('${_formatPrice(cart.subtotal)} UZS',
+                      Text(loc.t('cart.subtotal'),
+                          style: const TextStyle(fontSize: 12)),
+                      Text('${_formatPrice(cart.subtotal)} ${loc.t('common.sum')}',
                           style: const TextStyle(fontSize: 12)),
                     ],
                   ),
@@ -276,11 +298,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Delivery', style: TextStyle(fontSize: 12)),
+                      Text(loc.t('cart.delivery'),
+                          style: const TextStyle(fontSize: 12)),
                       Text(
-                        cart.deliveryFee > 0 
-                            ? '${_formatPrice(cart.deliveryFee)} UZS' 
-                            : 'FREE',
+                        cart.deliveryFee > 0
+                            ? '${_formatPrice(cart.deliveryFee)} ${loc.t('common.sum')}'
+                            : loc.t('cart.free').toUpperCase(),
                         style: TextStyle(
                           fontSize: 12,
                           color: cart.deliveryFee == 0 ? Colors.green : null,
@@ -288,21 +311,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     ],
                   ),
-                  
+
                   Divider(color: Colors.grey[300]),
-                  
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'TOTAL',
-                        style: TextStyle(
+                      Text(
+                        loc.t('cart.total').toUpperCase(),
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        '${_formatPrice(cart.total)} UZS',
+                        '${_formatPrice(cart.total)} ${loc.t('common.sum')}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -313,9 +336,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Place Order Button
             SizedBox(
               width: double.infinity,
@@ -337,25 +360,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           valueColor: AlwaysStoppedAnimation(Colors.white),
                         ),
                       )
-                    : const Text(
-                        'PLACE ORDER',
-                        style: TextStyle(letterSpacing: 1),
+                    : Text(
+                        loc.t('checkout.placeOrder'),
+                        style: const TextStyle(letterSpacing: 1),
                       ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Payment Info
             Text(
-              'Payment will be collected on delivery (Cash or Card)',
+              loc.t('checkout.successDesc'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
               ),
             ),
-            
+
             const SizedBox(height: 32),
           ],
         ),
@@ -365,9 +388,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   String _formatPrice(int price) {
     return price.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]} ',
-    );
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]} ',
+        );
   }
 }
 

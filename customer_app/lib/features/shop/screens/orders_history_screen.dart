@@ -2,10 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
+import 'package:customer_app/core/l10n/locale_provider.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
+
+/// OrderStatus -> tarjima kaliti
+String orderStatusLabel(LocaleProvider loc, OrderStatus status) {
+  switch (status) {
+    case OrderStatus.pending:
+      return loc.t('orderStatus.pending');
+    case OrderStatus.confirmed:
+      return loc.t('orderStatus.confirmed');
+    case OrderStatus.processing:
+      return loc.t('orderStatus.processing');
+    case OrderStatus.shipped:
+      return loc.t('orderStatus.shipped');
+    case OrderStatus.delivered:
+      return loc.t('orderStatus.delivered');
+    case OrderStatus.cancelled:
+      return loc.t('orderStatus.cancelled');
+  }
+}
 
 class OrdersHistoryScreen extends StatefulWidget {
   const OrdersHistoryScreen({super.key});
@@ -18,14 +38,36 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  bool _hasPhone = true;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<OrderProvider>().loadAllOrders();
+      _loadOrders();
     });
+  }
+
+  Future<void> _loadOrders() async {
+    String? phone;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      phone = prefs.getString('customer_phone');
+    } catch (_) {
+      phone = null;
+    }
+
+    if (!mounted) return;
+
+    if (phone == null || phone.trim().isEmpty) {
+      setState(() => _hasPhone = false);
+      return;
+    }
+
+    setState(() => _hasPhone = true);
+    await context.read<OrderProvider>().loadOrdersByPhone(phone);
   }
 
   @override
@@ -36,6 +78,8 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+
     return Scaffold(
       backgroundColor: CustomerTheme.background,
       appBar: AppBar(
@@ -46,7 +90,7 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen>
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'MY ORDERS',
+          loc.t('orders.title').toUpperCase(),
           style: GoogleFonts.playfairDisplay(
             color: Colors.black,
             fontSize: 18,
@@ -66,40 +110,47 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen>
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
-          tabs: const [
-            Tab(text: 'ACTIVE'),
-            Tab(text: 'COMPLETED'),
+          tabs: [
+            Tab(text: loc.t('orders.active').toUpperCase()),
+            Tab(text: loc.t('orders.completed').toUpperCase()),
           ],
         ),
       ),
-      body: Consumer<OrderProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.black),
-            );
-          }
+      body: !_hasPhone
+          ? _EmptyState(message: loc.t('orders.noPhone'))
+          : Consumer<OrderProvider>(
+              builder: (context, provider, _) {
+                if (provider.isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.black),
+                  );
+                }
 
-          if (provider.orders.isEmpty) {
-            return _EmptyState();
-          }
+                if (provider.orders.isEmpty) {
+                  return _EmptyState(message: loc.t('orders.empty'));
+                }
 
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _OrdersList(orders: provider.activeOrders),
-              _OrdersList(orders: provider.completedOrders),
-            ],
-          );
-        },
-      ),
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _OrdersList(orders: provider.activeOrders),
+                    _OrdersList(orders: provider.completedOrders),
+                  ],
+                );
+              },
+            ),
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
+  final String message;
+
+  const _EmptyState({required this.message});
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -111,7 +162,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'NO ORDERS YET',
+            loc.t('orders.empty').toUpperCase(),
             style: GoogleFonts.playfairDisplay(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -119,11 +170,15 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'Your orders will appear here',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -135,7 +190,7 @@ class _EmptyState extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: const RoundedRectangleBorder(),
             ),
-            child: const Text('START SHOPPING'),
+            child: Text(loc.t('cart.continueShopping').toUpperCase()),
           ),
         ],
       ),
@@ -150,10 +205,11 @@ class _OrdersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     if (orders.isEmpty) {
       return Center(
         child: Text(
-          'No orders',
+          loc.t('orders.empty'),
           style: TextStyle(color: Colors.grey[500]),
         ),
       );
@@ -176,6 +232,7 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
 
     return Container(
@@ -270,7 +327,7 @@ class _OrderCard extends StatelessWidget {
                     )),
                 if (order.items.length > 3)
                   Text(
-                    '+${order.items.length - 3} more items',
+                    '+${order.items.length - 3}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[500],
@@ -303,7 +360,7 @@ class _OrderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${_formatPrice(order.total)} UZS',
+                      '${_formatPrice(order.total)} ${loc.t('common.sum')}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -315,9 +372,9 @@ class _OrderCard extends StatelessWidget {
                 if (order.status == OrderStatus.pending)
                   TextButton(
                     onPressed: () => _cancelOrder(context),
-                    child: const Text(
-                      'CANCEL',
-                      style: TextStyle(
+                    child: Text(
+                      loc.t('orders.cancel').toUpperCase(),
+                      style: const TextStyle(
                         color: Colors.red,
                         fontSize: 12,
                         letterSpacing: 1,
@@ -333,20 +390,22 @@ class _OrderCard extends StatelessWidget {
   }
 
   void _cancelOrder(BuildContext context) async {
+    final loc = context.read<LocaleProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: const RoundedRectangleBorder(),
-        title: const Text('Cancel Order?'),
-        content: const Text('Are you sure you want to cancel this order?'),
+        title: Text(loc.t('orders.cancel')),
+        content: Text(loc.t('orders.cancel')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('NO'),
+            child: Text(loc.t('common.close').toUpperCase()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('YES', style: TextStyle(color: Colors.red)),
+            child: Text(loc.t('orders.cancel').toUpperCase(),
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -358,8 +417,8 @@ class _OrderCard extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(success ? 'Order cancelled' : 'Failed to cancel order'),
+            content: Text(
+                success ? loc.t('orders.cancel') : loc.t('common.error')),
           ),
         );
       }
@@ -381,33 +440,27 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     Color color;
-    String text;
 
     switch (status) {
       case OrderStatus.pending:
         color = Colors.orange;
-        text = 'PENDING';
         break;
       case OrderStatus.confirmed:
         color = Colors.blue;
-        text = 'CONFIRMED';
         break;
       case OrderStatus.processing:
         color = Colors.purple;
-        text = 'PROCESSING';
         break;
       case OrderStatus.shipped:
         color = Colors.cyan;
-        text = 'SHIPPED';
         break;
       case OrderStatus.delivered:
         color = Colors.green;
-        text = 'DELIVERED';
         break;
       case OrderStatus.cancelled:
         color = Colors.red;
-        text = 'CANCELLED';
         break;
     }
 
@@ -418,7 +471,7 @@ class _StatusBadge extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
-        text,
+        orderStatusLabel(loc, status).toUpperCase(),
         style: TextStyle(
           color: color,
           fontSize: 10,

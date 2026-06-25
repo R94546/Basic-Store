@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 
+import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'category_products_screen.dart';
 
 /// Menu Screen - ZARA style categories
@@ -10,26 +12,30 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Top tabs - ZARA style
+            // Sarlavha
             Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _TabItem(title: 'AYOLLAR', isSelected: true),
-                  _TabItem(title: 'ERKAKLAR'),
-                  _TabItem(title: 'BOLALAR'),
-                ],
+              height: 56,
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                loc.t('home.categories').toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  color: Colors.black,
+                ),
               ),
             ),
-            
+
             const Divider(height: 1, color: Color(0xFFEEEEEE)),
-            
+
             // Categories list
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -110,33 +116,6 @@ class _CategoryData {
   final String name;
 
   _CategoryData({required this.id, required this.name});
-}
-
-/// Top tab item - ZARA style
-class _TabItem extends StatelessWidget {
-  final String title;
-  final bool isSelected;
-
-  const _TabItem({
-    required this.title,
-    this.isSelected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 24),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          letterSpacing: 1.0,
-          color: Colors.black,
-        ),
-      ),
-    );
-  }
 }
 
 /// Category list item - ZARA style (minimalist)

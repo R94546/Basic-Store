@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import 'package:customer_app/core/l10n/locale_provider.dart';
 import '../models/product_model.dart';
 import 'product_detail_screen.dart';
 
@@ -18,6 +19,7 @@ class CategoryProductsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -54,7 +56,7 @@ class CategoryProductsScreen extends StatelessWidget {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.grey),
                   const SizedBox(height: 16),
-                  Text('Xatolik: ${snapshot.error}'),
+                  Text(loc.t('common.error')),
                 ],
               ),
             );
@@ -68,7 +70,7 @@ class CategoryProductsScreen extends StatelessWidget {
                   Icon(Icons.category_outlined, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
                   Text(
-                    'Bu kategoriyada mahsulotlar yo\'q',
+                    loc.t('common.empty'),
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ],
@@ -97,17 +99,8 @@ class CategoryProductsScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ProductDetailScreen(
-                        productId: product.id!,
-                        product: {
-                          'name': product.name,
-                          'price': product.price,
-                          'description': 'Premium quality ${product.name}',
-                          'images': product.images,
-                          'availableSizes': product.availableSizes,
-                          'availableColors': product.availableColors,
-                        },
-                      ),
+                      builder: (context) =>
+                          ProductDetailScreen(product: product),
                     ),
                   );
                 },

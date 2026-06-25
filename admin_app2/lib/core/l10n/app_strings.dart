@@ -138,6 +138,34 @@ class AppStrings {
       'ru': 'Этот раздел скоро будет доступен'
     },
 
+    // ===== Buyurtmalar (mijoz buyurtmalari) =====
+    'ordersAdmin.new': {'uz': 'Yangi', 'ru': 'Новые'},
+    'ordersAdmin.active': {'uz': 'Faol', 'ru': 'Активные'},
+    'ordersAdmin.completed': {'uz': 'Yakunlangan', 'ru': 'Завершённые'},
+    'ordersAdmin.changeStatus': {
+      'uz': 'Holatni o\'zgartirish',
+      'ru': 'Изменить статус'
+    },
+    'ordersAdmin.empty': {
+      'uz': 'Buyurtmalar yo\'q',
+      'ru': 'Заказов нет'
+    },
+    'ordersAdmin.items': {'uz': 'Mahsulotlar', 'ru': 'Товары'},
+    'ordersAdmin.phone': {'uz': 'Telefon', 'ru': 'Телефон'},
+    'ordersAdmin.address': {'uz': 'Manzil', 'ru': 'Адрес'},
+    'ordersAdmin.statusUpdated': {
+      'uz': 'Holat yangilandi',
+      'ru': 'Статус обновлён'
+    },
+
+    // ===== Buyurtma holatlari =====
+    'orderStatus.pending': {'uz': 'Kutilmoqda', 'ru': 'Ожидает'},
+    'orderStatus.confirmed': {'uz': 'Tasdiqlandi', 'ru': 'Подтверждён'},
+    'orderStatus.processing': {'uz': 'Tayyorlanmoqda', 'ru': 'В обработке'},
+    'orderStatus.shipped': {'uz': 'Yetkazilmoqda', 'ru': 'Доставляется'},
+    'orderStatus.delivered': {'uz': 'Yetkazildi', 'ru': 'Доставлен'},
+    'orderStatus.cancelled': {'uz': 'Bekor qilindi', 'ru': 'Отменён'},
+
     // ===== Nasiya / Mijozlar =====
     'nav.clients': {'uz': 'Nasiyalar', 'ru': 'Долги'},
     'clients.title': {'uz': 'Mijozlar va nasiyalar', 'ru': 'Клиенты и долги'},

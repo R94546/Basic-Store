@@ -7,6 +7,7 @@ import 'screens/search_screen.dart';
 import 'screens/menu_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/wishlist_screen.dart';
+import 'screens/profile_screen.dart';
 import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 
@@ -20,23 +21,26 @@ class CustomerShell extends StatefulWidget {
 class _CustomerShellState extends State<CustomerShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    SearchScreen(),
-    MenuScreen(),
-    CartScreen(),
-    WishlistScreen(),
-  ];
+  void _go(int i) => setState(() => _currentIndex = i);
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final wishlist = context.watch<WishlistProvider>();
-    
+
+    final screens = [
+      HomeScreen(onProfileTap: () => _go(5)),
+      const SearchScreen(),
+      const MenuScreen(),
+      const CartScreen(),
+      const WishlistScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -89,6 +93,12 @@ class _CustomerShellState extends State<CustomerShell> {
                   isActive: _currentIndex == 4,
                   onTap: () => setState(() => _currentIndex = 4),
                   badge: wishlist.count,
+                ),
+                _NavItem(
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  isActive: _currentIndex == 5,
+                  onTap: () => setState(() => _currentIndex = 5),
                 ),
               ],
             ),

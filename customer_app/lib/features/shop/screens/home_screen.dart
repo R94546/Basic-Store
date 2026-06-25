@@ -15,7 +15,8 @@ import 'profile_screen.dart';
 
 /// Do'kon bosh sahifasi — hero karusel, chegirmalar, kategoriyalar va yangi mahsulotlar.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onProfileTap;
+  const HomeScreen({super.key, this.onProfileTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -144,10 +145,16 @@ class _HomeScreenState extends State<HomeScreen> {
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.black),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            ),
+            onPressed: () {
+              if (widget.onProfileTap != null) {
+                widget.onProfileTap!();
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              }
+            },
           ),
         ],
       ),

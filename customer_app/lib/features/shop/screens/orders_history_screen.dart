@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
+import 'package:customer_app/core/telegram/telegram_service.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
@@ -51,6 +52,16 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen>
   }
 
   Future<void> _loadOrders() async {
+    // Telegram ichida bo'lsa — TG foydalanuvchisi bo'yicha
+    final tg = TelegramService.user;
+    if (tg != null) {
+      if (!mounted) return;
+      setState(() => _hasPhone = true);
+      await context.read<OrderProvider>().loadOrdersByTgId(tg.id);
+      return;
+    }
+
+    // Aks holda — checkout'da saqlangan telefon bo'yicha
     String? phone;
     try {
       final prefs = await SharedPreferences.getInstance();

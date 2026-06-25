@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
+import 'package:customer_app/core/telegram/telegram_service.dart';
 import '../providers/cart_provider.dart';
 import '../models/order_model.dart';
 
@@ -25,6 +26,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _notesController = TextEditingController();
 
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Telegram'dan ism avtomatik to'ldiriladi (mijoz o'zgartira oladi)
+    final tg = TelegramService.user;
+    if (tg != null && tg.fullName.isNotEmpty) {
+      _nameController.text = tg.fullName;
+    }
+  }
 
   @override
   void dispose() {
@@ -61,11 +72,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final normalizedPhone = _normalizePhone(_phoneController.text.trim());
+      final tg = TelegramService.user;
 
       final order = CustomerOrder(
+        customerId: tg?.id,
         customerName: _nameController.text.trim(),
         customerPhone: normalizedPhone,
         customerAddress: _addressController.text.trim(),
+        customerPhoto: tg?.photoUrl,
+        customerUsername: tg?.username,
         items: cart.items,
         subtotal: cart.subtotal,
         deliveryFee: cart.deliveryFee,
@@ -79,10 +94,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Save to Firestore
       await FirebaseFirestore.instance.collection('orders').add(order.toMap());
 
-      // Mijoz telefon raqamini saqlash (buyurtmalar tarixi uchun)
+      // Buyurtmalar tarixi uchun mijozni saqlash (telefon + Telegram id)
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('customer_phone', normalizedPhone);
+        if (tg?.id != null) {
+          await prefs.setString('customer_tg_id', tg!.id);
+        }
       } catch (_) {
         // Saqlashda xatolik bo'lsa ham buyurtma muvaffaqiyatli
       }

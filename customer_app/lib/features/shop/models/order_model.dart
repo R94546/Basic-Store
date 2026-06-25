@@ -50,10 +50,12 @@ extension OrderStatusX on OrderStatus {
 /// Represents a customer order
 class CustomerOrder {
   final String? id;
-  final String? customerId;
+  final String? customerId;     // Telegram user id (bo'lsa)
   final String customerName;
   final String customerPhone;
   final String? customerAddress;
+  final String? customerPhoto;     // Telegram profil rasmi URL
+  final String? customerUsername;  // Telegram @username
   final List<CartItem> items;
   final int subtotal;
   final int deliveryFee;
@@ -69,6 +71,8 @@ class CustomerOrder {
     required this.customerName,
     required this.customerPhone,
     this.customerAddress,
+    this.customerPhoto,
+    this.customerUsername,
     required this.items,
     required this.subtotal,
     this.deliveryFee = 0,
@@ -89,6 +93,8 @@ class CustomerOrder {
       'customerName': customerName,
       'customerPhone': customerPhone,
       'customerAddress': customerAddress,
+      if (customerPhoto != null) 'customerPhoto': customerPhoto,
+      if (customerUsername != null) 'customerUsername': customerUsername,
       'items': items.map((e) => e.toMap()).toList(),
       'subtotal': subtotal,
       'deliveryFee': deliveryFee,
@@ -109,6 +115,8 @@ class CustomerOrder {
       customerName: data['customerName'] ?? '',
       customerPhone: data['customerPhone'] ?? '',
       customerAddress: data['customerAddress'],
+      customerPhoto: data['customerPhoto'],
+      customerUsername: data['customerUsername'],
       items: (data['items'] as List<dynamic>?)
               ?.map((e) => CartItem.fromMap(e as Map<String, dynamic>))
               .toList() ??
@@ -132,6 +140,8 @@ class CustomerOrder {
     String? customerName,
     String? customerPhone,
     String? customerAddress,
+    String? customerPhoto,
+    String? customerUsername,
     List<CartItem>? items,
     int? subtotal,
     int? deliveryFee,
@@ -147,6 +157,8 @@ class CustomerOrder {
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       customerAddress: customerAddress ?? this.customerAddress,
+      customerPhoto: customerPhoto ?? this.customerPhoto,
+      customerUsername: customerUsername ?? this.customerUsername,
       items: items ?? this.items,
       subtotal: subtotal ?? this.subtotal,
       deliveryFee: deliveryFee ?? this.deliveryFee,

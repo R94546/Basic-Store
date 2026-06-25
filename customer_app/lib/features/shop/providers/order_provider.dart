@@ -55,6 +55,29 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
+  /// Telegram foydalanuvchisi (customerId) bo'yicha buyurtmalar
+  Future<void> loadOrdersByTgId(String tgId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final snapshot = await _firestore
+          .collection('orders')
+          .where('customerId', isEqualTo: tgId)
+          .orderBy('createdAt', descending: true)
+          .get();
+      _orders = snapshot.docs
+          .map((doc) => CustomerOrder.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('OrderProvider tgId error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Barcha buyurtmalarni yuklash (hozircha auth yo'q shuning uchun hammasi)
   Future<void> loadAllOrders() async {
     _isLoading = true;

@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
+import 'package:customer_app/core/telegram/telegram_service.dart';
 import 'orders_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -38,6 +40,9 @@ class ProfileScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
+                  // Telegram foydalanuvchisi (Telegram'da ochilganda)
+                  _buildUserHeader(loc),
+
                   // Language switch
                   Text(
                     loc.t('profile.language').toUpperCase(),
@@ -95,6 +100,52 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUserHeader(LocaleProvider loc) {
+    final tg = TelegramService.user;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF0F0F0),
+              shape: BoxShape.circle,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: (tg?.photoUrl != null && tg!.photoUrl!.isNotEmpty)
+                ? CachedNetworkImage(
+                    imageUrl: tg.photoUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) =>
+                        const Icon(Icons.person, color: Colors.grey),
+                  )
+                : const Icon(Icons.person, color: Colors.grey, size: 30),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tg?.fullName.isNotEmpty == true
+                      ? tg!.fullName
+                      : loc.t('home.welcome'),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                if (tg?.username != null)
+                  Text('@${tg!.username}',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

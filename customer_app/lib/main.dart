@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/l10n/locale_provider.dart';
+import 'core/telegram/telegram_service.dart';
 import 'features/shop/customer_shell.dart';
 import 'features/shop/providers/cart_provider.dart';
 import 'features/shop/providers/order_provider.dart';
@@ -17,6 +18,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Telegram Mini App'ga tayyor ekanini bildirish (Telegram'dan tashqarida no-op)
+  TelegramService.init();
   runApp(const CustomerApp());
 }
 

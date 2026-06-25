@@ -1,5 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../l10n/locale_provider.dart';
 
 /// Glassmorphism dizayn uchun asosiy tema
 class AppTheme {
@@ -190,75 +193,55 @@ class GlassSidebar extends StatelessWidget {
     required this.onItemSelected,
   });
 
+  // Menyu tartibi (route indekslari bilan mos)
+  static const List<(IconData, String)> _menu = [
+    (Icons.dashboard_rounded, 'nav.dashboard'),
+    (Icons.inventory_2_rounded, 'nav.warehouse'),
+    (Icons.point_of_sale_rounded, 'nav.pos'),
+    (Icons.lock_clock_rounded, 'nav.session'),
+    (Icons.people_alt_rounded, 'nav.clients'),
+    (Icons.receipt_long_rounded, 'nav.orders'),
+    (Icons.discount_rounded, 'nav.discount'),
+    (Icons.history_rounded, 'nav.sales'),
+    (Icons.analytics_rounded, 'nav.reports'),
+    (Icons.category_rounded, 'nav.categories'),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+
     return GlassCard(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       margin: const EdgeInsets.all(16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          _SidebarItem(
-            icon: Icons.dashboard_rounded,
-            label: 'Dashboard',
-            isSelected: selectedIndex == 0,
-            onTap: () => onItemSelected(0),
+          // Menyu — kichik ekranda skrol bo'ladi
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < _menu.length; i++) ...[
+                    _SidebarItem(
+                      icon: _menu[i].$1,
+                      label: loc.t(_menu[i].$2),
+                      isSelected: selectedIndex == i,
+                      onTap: () => onItemSelected(i),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.inventory_2_rounded,
-            label: 'Sklad',
-            isSelected: selectedIndex == 1,
-            onTap: () => onItemSelected(1),
-          ),
-          const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.point_of_sale_rounded,
-            label: 'Kassa',
-            isSelected: selectedIndex == 2,
-            onTap: () => onItemSelected(2),
-          ),
-          const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.receipt_long_rounded,
-            label: 'Buyurtmalar',
-            isSelected: selectedIndex == 3,
-            onTap: () => onItemSelected(3),
-          ),
-          const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.discount_rounded,
-            label: 'Chegirma',
-            isSelected: selectedIndex == 4,
-            onTap: () => onItemSelected(4),
-          ),
-          const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.history_rounded,
-            label: 'Savdo tarixi',
-            isSelected: selectedIndex == 5,
-            onTap: () => onItemSelected(5),
-          ),
-          const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.analytics_rounded,
-            label: 'Hisobot',
-            isSelected: selectedIndex == 6,
-            onTap: () => onItemSelected(6),
-          ),
-          const SizedBox(height: 8),
-          _SidebarItem(
-            icon: Icons.category_rounded,
-            label: 'Kategoriyalar',
-            isSelected: selectedIndex == 7,
-            onTap: () => onItemSelected(7),
-          ),
-          const Spacer(),
+          // Sozlama — doimo pastda (oxirgi indeks)
           _SidebarItem(
             icon: Icons.settings_rounded,
-            label: 'Sozlama',
-            isSelected: selectedIndex == 8,
-            onTap: () => onItemSelected(8),
+            label: loc.t('nav.settings'),
+            isSelected: selectedIndex == _menu.length,
+            onTap: () => onItemSelected(_menu.length),
           ),
         ],
       ),

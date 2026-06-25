@@ -61,15 +61,15 @@ class CategoryProvider extends ChangeNotifier {
 
   List<ProductCategory> _getDefaultCategories() {
     return [
-      ProductCategory(name: "Ko'ylak", icon: '👗', order: 1),
-      ProductCategory(name: 'Shim', icon: '👖', order: 2),
-      ProductCategory(name: 'Yubka', icon: '🩱', order: 3),
-      ProductCategory(name: 'Bluzka', icon: '👚', order: 4),
-      ProductCategory(name: "Ko'stum", icon: '🥻', order: 5),
-      ProductCategory(name: 'Palto', icon: '🧥', order: 6),
-      ProductCategory(name: 'Kurtka', icon: '🧥', order: 7),
-      ProductCategory(name: 'Sport', icon: '🏃', order: 8),
-      ProductCategory(name: 'Boshqa', icon: '📦', order: 99),
+      ProductCategory(name: "Ko'ylak", icon: 'dress', order: 1),
+      ProductCategory(name: 'Shim', icon: 'pants', order: 2),
+      ProductCategory(name: 'Futbolka', icon: 'tshirt', order: 3),
+      ProductCategory(name: 'Kurtka', icon: 'jacket', order: 4),
+      ProductCategory(name: 'Oyoq kiyim', icon: 'shoes', order: 5),
+      ProductCategory(name: 'Sport', icon: 'sport', order: 6),
+      ProductCategory(name: 'Aksessuar', icon: 'jewelry', order: 7),
+      ProductCategory(name: 'Sumka', icon: 'bag', order: 8),
+      ProductCategory(name: 'Boshqa', icon: 'other', order: 99),
     ];
   }
 

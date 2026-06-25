@@ -6,7 +6,8 @@ class Product {
   final String category;
   final String size;       // Oddiy mahsulot uchun
   final String? color;     // Oddiy mahsulot uchun
-  final int price;
+  final int price;         // Sotish narxi
+  final int buyPrice;      // Kelish (tan) narxi
   final int quantity;
   final String barcode;
   final List<String> images;
@@ -25,6 +26,7 @@ class Product {
     this.size = 'M',
     this.color,
     required this.price,
+    this.buyPrice = 0,
     required this.quantity,
     required this.barcode,
     this.images = const [],
@@ -44,6 +46,7 @@ class Product {
       size: data['size'] ?? 'M',
       color: data['color'],
       price: data['price'] ?? 0,
+      buyPrice: data['buyPrice'] ?? 0,
       quantity: data['quantity'] ?? 0,
       barcode: data['barcode'] ?? '',
       images: List<String>.from(data['images'] ?? []),
@@ -62,6 +65,7 @@ class Product {
       'size': size,
       if (color != null) 'color': color,
       'price': price,
+      'buyPrice': buyPrice,
       'quantity': quantity,
       'barcode': barcode,
       'images': images,
@@ -80,6 +84,7 @@ class Product {
     String? size,
     String? color,
     int? price,
+    int? buyPrice,
     int? quantity,
     String? barcode,
     List<String>? images,
@@ -95,6 +100,7 @@ class Product {
       size: size ?? this.size,
       color: color ?? this.color,
       price: price ?? this.price,
+      buyPrice: buyPrice ?? this.buyPrice,
       quantity: quantity ?? this.quantity,
       barcode: barcode ?? this.barcode,
       images: images ?? this.images,

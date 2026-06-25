@@ -47,6 +47,8 @@ dependencies:
   http: ^1.6.0
   printing: ^5.14.2
   pdf: ^3.11.3
+  fl_chart: ^0.69.0
+  barcode: ^2.2.9
 
 dev_dependencies:
   flutter_test:

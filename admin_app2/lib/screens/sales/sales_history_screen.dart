@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/sale.dart';
 import '../../providers/sale_provider.dart';
@@ -28,6 +29,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -36,9 +38,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
           // Header
           Row(
             children: [
-              const Text(
-                'Savdo tarixi',
-                style: TextStyle(
+              Text(
+                loc.t('nav.sales'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
@@ -51,13 +53,13 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   return Row(
                     children: [
                       _MiniStat(
-                        label: 'Bugun',
+                        label: loc.t('common.today'),
                         value: _currencyFormat.format(provider.todayTotal),
                         color: AppTheme.accentGreen,
                       ),
                       const SizedBox(width: 16),
                       _MiniStat(
-                        label: 'Savdolar',
+                        label: loc.t('dash.salesCount'),
                         value: '${provider.todayCount}',
                         color: AppTheme.accentOrange,
                       ),
@@ -85,9 +87,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                       children: [
                         Icon(Icons.receipt_long, size: 64, color: AppTheme.textSecondary.withOpacity(0.3)),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Hali savdolar yo\'q',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                        Text(
+                          loc.t('sales.noSales'),
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16),
                         ),
                       ],
                     ),
@@ -106,6 +108,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                         sale: sale,
                         currencyFormat: _currencyFormat,
                         dateFormat: _dateFormat,
+                        itemsUnit: loc.t('unit.items'),
                         onTap: () => _showSaleDetails(sale),
                       );
                     },
@@ -120,6 +123,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   }
 
   void _showSaleDetails(Sale sale) {
+    final loc = context.read<LocaleProvider>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -137,9 +141,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 // Header
                 Row(
                   children: [
-                    const Text(
-                      'Savdo tafsilotlari',
-                      style: TextStyle(
+                    Text(
+                      loc.t('sales.details'),
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -163,9 +167,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 const SizedBox(height: 8),
                 
                 // Tovarlar
-                const Text(
-                  'Tovarlar:',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                Text(
+                  loc.t('sales.products'),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 
@@ -211,7 +215,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Asl summa:', style: TextStyle(color: AppTheme.textSecondary)),
+                      Text(loc.t('sales.originalAmount'), style: const TextStyle(color: AppTheme.textSecondary)),
                       Text(_currencyFormat.format(sale.originalAmount)),
                     ],
                   ),
@@ -219,7 +223,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Chegirma:', style: TextStyle(color: AppTheme.accentRed)),
+                      Text(loc.t('sales.discountLabel'), style: const TextStyle(color: AppTheme.accentRed)),
                       Text(
                         '-${_currencyFormat.format(sale.discountAmount)}',
                         style: const TextStyle(color: AppTheme.accentRed),
@@ -232,9 +236,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'JAMI:',
-                      style: TextStyle(
+                    Text(
+                      loc.t('sales.totalUpper'),
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -262,7 +266,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      sale.paymentMethod == 'cash' ? 'Naqd' : 'Karta',
+                      loc.payLabel(sale.paymentMethod),
                       style: const TextStyle(color: AppTheme.textSecondary),
                     ),
                   ],
@@ -319,12 +323,14 @@ class _SaleListItem extends StatelessWidget {
   final Sale sale;
   final NumberFormat currencyFormat;
   final DateFormat dateFormat;
+  final String itemsUnit;
   final VoidCallback onTap;
 
   const _SaleListItem({
     required this.sale,
     required this.currencyFormat,
     required this.dateFormat,
+    required this.itemsUnit,
     required this.onTap,
   });
 
@@ -376,7 +382,7 @@ class _SaleListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${sale.items.length} tovar',
+                    '${sale.items.length} $itemsUnit',
                     style: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 12,

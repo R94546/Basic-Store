@@ -1,15 +1,15 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/l10n/locale_provider.dart';
 import '../../models/product.dart';
-import '../../models/product_variant.dart';
 import '../../providers/product_provider.dart';
-import '../../widgets/image_picker_widget.dart';
-import '../../services/image_upload_service.dart';
+import '../../providers/category_provider.dart';
+import '../../providers/printer_provider.dart';
+import '../stockin/stockin_screen.dart';
+import 'add_product_screen.dart';
 
 class WarehouseScreen extends StatefulWidget {
   const WarehouseScreen({super.key});
@@ -19,125 +19,89 @@ class WarehouseScreen extends StatefulWidget {
 }
 
 class _WarehouseScreenState extends State<WarehouseScreen> {
+  final _searchController = TextEditingController();
+  String _search = '';
+  String _categoryFilter = 'Barchasi';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadProducts();
+      final cat = context.read<CategoryProvider>();
+      if (cat.categoryNames.isEmpty) cat.loadCategories();
     });
   }
 
-  void _showAddProductDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => const _AddProductWithVariantsDialog(),
-    );
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _openForm({Product? product}) {
+    showProductFormDialog(context, product: product);
+  }
+
+  List<Product> _applyFilters(List<Product> products) {
+    Iterable<Product> result = products;
+    if (_categoryFilter != 'Barchasi') {
+      result = result.where((p) => p.category == _categoryFilter);
+    }
+    if (_search.isNotEmpty) {
+      final q = _search.toLowerCase();
+      result = result.where((p) =>
+          p.name.toLowerCase().contains(q) ||
+          p.barcode.toLowerCase().contains(q) ||
+          p.category.toLowerCase().contains(q));
+    }
+    return result.toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                const Text(
-                  'Sklad',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                // Search
-                SizedBox(
-                  width: 300,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Mahsulot qidirish...',
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: _showAddProductDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Yangi mahsulot'),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Products Grid
+          _buildHeader(loc),
+          const SizedBox(height: 16),
+          _buildCategoryFilter(loc),
+          const SizedBox(height: 16),
           Expanded(
             child: Consumer<ProductProvider>(
               builder: (context, provider, _) {
                 if (provider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+                final products = _applyFilters(provider.products);
+
                 if (provider.products.isEmpty) {
-                  return Center(
-                    child: GlassCard(
-                      padding: const EdgeInsets.all(40),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            size: 64,
-                            color: AppTheme.textSecondary.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Hali mahsulot yo\'q',
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _showAddProductDialog,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Birinchi mahsulotni qo\'shing'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildEmpty(loc, isFiltered: false);
                 }
-                
+                if (products.isEmpty) {
+                  return _buildEmpty(loc, isFiltered: true);
+                }
+
                 return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 220,
-                    childAspectRatio: 0.75,
+                  gridDelegate:
+                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 240,
+                    childAspectRatio: 0.62,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: provider.products.length + 1,
+                  itemCount: products.length + 1,
                   itemBuilder: (context, index) {
-                    if (index == provider.products.length) {
-                      return _AddProductCard(onTap: _showAddProductDialog);
+                    if (index == products.length) {
+                      return _AddProductCard(onTap: () => _openForm());
                     }
-                    final product = provider.products[index];
-                    return _ProductCard(product: product);
+                    return _ProductCard(
+                      product: products[index],
+                      onEdit: () => _openForm(product: products[index]),
+                    );
                   },
                 );
               },
@@ -147,110 +111,273 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
       ),
     );
   }
-}
 
-class _ProductCard extends StatelessWidget {
-  final Product product;
-
-  const _ProductCard({required this.product});
-
-  void _showEditDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => _EditProductDialog(product: product),
-    );
-  }
-
-  void _confirmDelete(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.gradientStart,
-        title: const Text('O\'chirishni tasdiqlang', style: TextStyle(color: AppTheme.textPrimary)),
-        content: Text(
-          '"${product.name}" ni o\'chirishni xohlaysizmi?',
-          style: const TextStyle(color: AppTheme.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Bekor'),
+  Widget _buildHeader(LocaleProvider loc) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Text(
+            loc.t('nav.warehouse'),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<ProductProvider>().deleteProduct(product.id!);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${product.name} o\'chirildi'),
-                  backgroundColor: AppTheme.accentRed,
+          const SizedBox(width: 12),
+          Consumer<ProductProvider>(
+            builder: (_, p, __) => Text(
+              '${p.products.length} ${loc.t('product.stock').toLowerCase()}',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: 280,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _search = v.trim()),
+              decoration: InputDecoration(
+                hintText: '${loc.t('common.search')}...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _search = '');
+                        },
+                      ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
                 ),
-              );
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Prixod (tovar kelishi) — Sklad ichida
+          OutlinedButton.icon(
+            onPressed: () async {
+              await showStockInDialog(context);
+              if (mounted) context.read<ProductProvider>().loadProducts();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentRed),
-            child: const Text('O\'chirish'),
+            icon: const Icon(Icons.add_box_outlined),
+            label: Text(loc.t('nav.stockin')),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.accentGreen,
+              side: BorderSide(
+                  color: AppTheme.accentGreen.withValues(alpha: 0.5)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: () => _openForm(),
+            icon: const Icon(Icons.add),
+            label: Text(loc.t('product.new')),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildCategoryFilter(LocaleProvider loc) {
+    return Consumer<CategoryProvider>(
+      builder: (context, catProvider, _) {
+        final cats = ['Barchasi', ...catProvider.categoryNames];
+        return SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: cats.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final cat = cats[i];
+              final selected = cat == _categoryFilter;
+              return ChoiceChip(
+                label: Text(cat == 'Barchasi' ? loc.t('common.all') : cat),
+                selected: selected,
+                onSelected: (_) => setState(() => _categoryFilter = cat),
+                selectedColor: AppTheme.accentOrange.withValues(alpha: 0.3),
+                backgroundColor: Colors.white.withValues(alpha: 0.3),
+                labelStyle: TextStyle(
+                  color:
+                      selected ? AppTheme.accentOrange : AppTheme.textSecondary,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                side: BorderSide(
+                  color: selected ? AppTheme.accentOrange : AppTheme.glassBorder,
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmpty(LocaleProvider loc, {required bool isFiltered}) {
+    return Center(
+      child: GlassCard(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isFiltered ? Icons.search_off : Icons.inventory_2_outlined,
+              size: 64,
+              color: AppTheme.textSecondary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isFiltered
+                  ? loc.t('warehouse.nothingFound')
+                  : loc.t('warehouse.noProducts'),
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 18),
+            ),
+            if (!isFiltered) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _openForm(),
+                icon: const Icon(Icons.add),
+                label: Text(loc.t('warehouse.addFirst')),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stock holatiga qarab rang qaytaradi.
+Color _stockColor(int qty) {
+  if (qty == 0) return AppTheme.accentRed;
+  if (qty <= 3) return AppTheme.accentOrange;
+  return AppTheme.accentGreen;
+}
+
+class _ProductCard extends StatelessWidget {
+  final Product product;
+  final VoidCallback onEdit;
+
+  const _ProductCard({required this.product, required this.onEdit});
+
+  void _confirmDelete(BuildContext context, LocaleProvider loc) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.gradientStart,
+        title: Text(loc.t('warehouse.confirmDelete'),
+            style: const TextStyle(color: AppTheme.textPrimary)),
+        content: Text(
+          '"${product.name}" ${loc.t('warehouse.deleteConfirm')}',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(loc.t('common.cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await context.read<ProductProvider>().deleteProduct(product.id!);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${product.name} ${loc.t('warehouse.deleted')}'),
+                    backgroundColor: AppTheme.accentRed,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentRed),
+            child: Text(loc.t('common.delete')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _printLabel(BuildContext context) async {
+    final printer = context.read<PrinterProvider>();
+    final loc = context.read<LocaleProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    if (!printer.isConfigured) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(loc.t('printer.notConfigured')),
+          backgroundColor: AppTheme.accentRed,
+        ),
+      );
+      return;
+    }
+    final ok = await printer.printProductLabel(
+      productName: product.name,
+      barcode: product.barcode,
+      price: product.price.toString(),
+      size: product.size,
+      color: product.color,
+    );
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+            ok ? loc.t('printer.labelPrinted') : loc.t('printer.printError')),
+        backgroundColor: ok ? AppTheme.accentGreen : AppTheme.accentRed,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+    final stockColor = _stockColor(product.quantity);
+
     return GlassCard(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image with actions
+          // Rasm + badge + menyu
           Expanded(
             child: Stack(
               children: [
-                // Product Image
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
                     color: Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    image: product.images.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(product.images.first),
+                    child: product.images.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: product.images.first,
                             fit: BoxFit.cover,
+                            placeholder: (_, __) => const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            errorWidget: (_, __, ___) => _fallbackIcon(),
                           )
-                        : null,
+                        : _fallbackIcon(),
                   ),
-                  child: product.images.isEmpty
-                      ? Center(
-                          child: Icon(
-                            Icons.checkroom,
-                            size: 48,
-                            color: AppTheme.textSecondary.withValues(alpha: 0.4),
-                          ),
-                        )
-                      : null,
                 ),
-                // Variant badge
                 if (product.hasVariants)
                   Positioned(
                     top: 8,
                     left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentOrange,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Variants',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    child: _badge(loc.t('product.variants'),
+                        AppTheme.accentOrange),
                   ),
-                // Action buttons
+                if ((product.discount ?? 0) > 0)
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: _badge('-${product.discount}%', AppTheme.accentRed),
+                  ),
                 Positioned(
                   top: 4,
                   right: 4,
@@ -261,36 +388,34 @@ class _ProductCard extends StatelessWidget {
                         color: Colors.black.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.more_vert, color: Colors.white, size: 18),
+                      child: const Icon(Icons.more_vert,
+                          color: Colors.white, size: 18),
                     ),
                     color: AppTheme.gradientStart,
                     onSelected: (value) {
                       if (value == 'edit') {
-                        _showEditDialog(context);
+                        onEdit();
                       } else if (value == 'delete') {
-                        _confirmDelete(context);
+                        _confirmDelete(context, loc);
+                      } else if (value == 'print') {
+                        _printLabel(context);
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 18, color: AppTheme.accentOrange),
-                            SizedBox(width: 8),
-                            Text('Tahrirlash', style: TextStyle(color: AppTheme.textPrimary)),
-                          ],
-                        ),
+                        child: _menuRow(Icons.edit, loc.t('common.edit'),
+                            AppTheme.accentOrange),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
+                        value: 'print',
+                        child: _menuRow(Icons.print, loc.t('product.printLabel'),
+                            AppTheme.textPrimary),
+                      ),
+                      PopupMenuItem(
                         value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 18, color: AppTheme.accentRed),
-                            SizedBox(width: 8),
-                            Text('O\'chirish', style: TextStyle(color: AppTheme.accentRed)),
-                          ],
-                        ),
+                        child: _menuRow(Icons.delete, loc.t('common.delete'),
+                            AppTheme.accentRed),
                       ),
                     ],
                   ),
@@ -298,62 +423,132 @@ class _ProductCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          // Name
+          const SizedBox(height: 10),
           Text(
             product.name,
             style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
+                fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          // Category & Size
           Text(
-            product.hasVariants 
-                ? '${product.category} • ${product.availableSizes.length} o\'lcham'
+            product.hasVariants
+                ? '${product.category} • ${product.availableSizes.length} ${loc.t('product.size').toLowerCase()}'
                 : '${product.category} • ${product.size}',
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
-          // Price & Quantity
+          const SizedBox(height: 6),
+          // Narxlar
+          Row(
+            children: [
+              Expanded(
+                child: _priceLine(loc.t('product.sellPrice'),
+                    '${product.price} ${loc.t('common.sum')}', AppTheme.accentOrange),
+              ),
+            ],
+          ),
+          if (product.buyPrice > 0)
+            _priceLine(loc.t('product.buyPrice'),
+                '${product.buyPrice} ${loc.t('common.sum')}', AppTheme.textSecondary),
+          const SizedBox(height: 6),
+          // Qoldiq + barcode
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${product.price} so\'m',
-                style: const TextStyle(
-                  color: AppTheme.accentOrange,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: product.quantity <= 3 
-                      ? AppTheme.accentRed.withValues(alpha: 0.2)
-                      : AppTheme.accentGreen.withValues(alpha: 0.2),
+                  color: stockColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '${product.quantity}',
+                  '${loc.t('product.stock')}: ${product.quantity}',
                   style: TextStyle(
-                    color: product.quantity <= 3 
-                        ? AppTheme.accentRed 
-                        : AppTheme.accentGreen,
+                    color: stockColor,
                     fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ),
+              if (product.barcode.isNotEmpty)
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.qr_code_2,
+                          size: 14, color: AppTheme.textSecondary),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text(
+                          product.barcode,
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _fallbackIcon() {
+    return Center(
+      child: Icon(
+        Icons.checkroom,
+        size: 48,
+        color: AppTheme.textSecondary.withValues(alpha: 0.4),
+      ),
+    );
+  }
+
+  Widget _badge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _menuRow(IconData icon, String label, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: color)),
+      ],
+    );
+  }
+
+  Widget _priceLine(String label, String value, Color valueColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+        Text(
+          value,
+          style: TextStyle(
+              color: valueColor, fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      ],
     );
   }
 }
@@ -365,6 +560,7 @@ class _AddProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return GlassCard(
       opacity: 0.1,
       child: InkWell(
@@ -380,672 +576,16 @@ class _AddProductCard extends StatelessWidget {
                   color: AppTheme.accentOrange.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.add,
-                  color: AppTheme.accentOrange,
-                  size: 32,
-                ),
+                child: const Icon(Icons.add,
+                    color: AppTheme.accentOrange, size: 32),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Qo\'shish',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
+              Text(
+                loc.t('common.add'),
+                style: const TextStyle(
+                    color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Variant jadval bilan mahsulot qo'shish dialogi
-class _AddProductWithVariantsDialog extends StatefulWidget {
-  const _AddProductWithVariantsDialog();
-
-  @override
-  State<_AddProductWithVariantsDialog> createState() => _AddProductWithVariantsDialogState();
-}
-
-class _AddProductWithVariantsDialogState extends State<_AddProductWithVariantsDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-  
-  String _selectedCategory = 'Ko\'ylak';
-  bool _hasVariants = true;
-  bool _isSaving = false;
-
-  // O'lchamlar va ranglar
-  final List<String> _allSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-  final List<String> _allColors = ['Qora', 'Oq', 'Qizil', 'Ko\'k', 'Yashil', 'Sariq', 'Pushti', 'Kulrang'];
-  
-  final Set<String> _selectedSizes = {'S', 'M', 'L'};
-  final Set<String> _selectedColors = {'Qora', 'Oq'};
-  
-  // Variant jadvali: {size_color: quantity}
-  final Map<String, int> _variantQuantities = {};
-  
-  // Rasmlar
-  List<PlatformFile> _selectedImages = [];
-  final _imageUploadService = ImageUploadService();
-  
-  final List<String> categories = [
-    'Ko\'ylak', 'Shim', 'Yubka', 'Bluzka', 'Ko\'stum', 'Palto', 'Kurtka', 'Sport', 'Boshqa',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _updateVariantTable();
-  }
-
-  void _updateVariantTable() {
-    // Variantlarni generatsiya qilish
-    for (final size in _selectedSizes) {
-      for (final color in _selectedColors) {
-        final key = '${size}_$color';
-        _variantQuantities.putIfAbsent(key, () => 0);
-      }
-    }
-    // Eski variantlarni o'chirish
-    _variantQuantities.removeWhere((key, _) {
-      final parts = key.split('_');
-      return !_selectedSizes.contains(parts[0]) || !_selectedColors.contains(parts[1]);
-    });
-    setState(() {});
-  }
-
-  String _generateBarcode() {
-    final random = Random();
-    final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(5);
-    final randomPart = random.nextInt(9999).toString().padLeft(4, '0');
-    return '890$timestamp$randomPart'.substring(0, 13);
-  }
-
-  Future<void> _saveProduct() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isSaving = true);
-
-    try {
-      final provider = context.read<ProductProvider>();
-      
-      // Vaqtinchalik product ID rasm yuklash uchun
-      final tempId = DateTime.now().millisecondsSinceEpoch.toString();
-      
-      // Rasmlarni yuklash
-      List<String> imageUrls = [];
-      if (_selectedImages.isNotEmpty) {
-        imageUrls = await _imageUploadService.uploadMultipleImages(
-          files: _selectedImages,
-          productId: tempId,
-        );
-      }
-      
-      if (_hasVariants) {
-        // Variantli mahsulot
-        final product = Product(
-          name: _nameController.text.trim(),
-          category: _selectedCategory,
-          price: int.parse(_priceController.text),
-          quantity: 0, // Variantlardan hisoblanadi
-          barcode: _generateBarcode(),
-          images: imageUrls,
-          hasVariants: true,
-          availableSizes: _selectedSizes.toList(),
-          availableColors: _selectedColors.toList(),
-        );
-
-        final productId = await provider.addProduct(product);
-        
-        if (productId != null) {
-          // Variantlarni qo'shish
-          final variants = <ProductVariant>[];
-          for (final entry in _variantQuantities.entries) {
-            final parts = entry.key.split('_');
-            final size = parts[0];
-            final color = parts[1];
-            
-            if (entry.value > 0) {
-              variants.add(ProductVariant(
-                skuId: ProductVariant.generateSku(productId, size, color),
-                size: size,
-                color: color,
-                quantity: entry.value,
-                barcode: _generateBarcode(),
-              ));
-            }
-          }
-          
-          if (variants.isNotEmpty) {
-            await provider.addVariants(productId, variants);
-          }
-        }
-      } else {
-        // Oddiy mahsulot
-        final product = Product(
-          name: _nameController.text.trim(),
-          category: _selectedCategory,
-          size: _selectedSizes.first,
-          color: _selectedColors.isNotEmpty ? _selectedColors.first : null,
-          price: int.parse(_priceController.text),
-          quantity: _variantQuantities.values.fold(0, (a, b) => a + b),
-          barcode: _generateBarcode(),
-          images: imageUrls,
-          hasVariants: false,
-        );
-
-        await provider.addProduct(product);
-      }
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mahsulot saqlandi!'),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Xato: $e'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
-
-    setState(() => _isSaving = false);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _priceController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: GlassCard(
-        blur: 20,
-        opacity: 0.95,
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 700,
-          height: 600,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  children: [
-                    const Text(
-                      'Yangi mahsulot',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Variant toggle
-                    Row(
-                      children: [
-                        const Text('Variantlar', style: TextStyle(color: AppTheme.textSecondary)),
-                        Switch(
-                          value: _hasVariants,
-                          onChanged: (v) => setState(() => _hasVariants = v),
-                          activeColor: AppTheme.accentOrange,
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Rasm yuklash
-                ImagePickerWidget(
-                  onImagesSelected: (files) {
-                    setState(() => _selectedImages = files);
-                  },
-                  maxImages: 5,
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Basic Info Row
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Tovar nomi',
-                          prefixIcon: Icon(Icons.shopping_bag),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Tovar nomini kiriting';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: const InputDecoration(
-                          labelText: 'Kategoriya',
-                          prefixIcon: Icon(Icons.category),
-                        ),
-                        items: categories.map((cat) {
-                          return DropdownMenuItem(value: cat, child: Text(cat));
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedCategory = value!);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _priceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Narxi (so\'m)',
-                          prefixIcon: Icon(Icons.attach_money),
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Narxni kiriting';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 20),
-                
-                if (_hasVariants) ...[
-                  // Size Chips
-                  const Text('O\'lchamlar:', style: TextStyle(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _allSizes.map((size) {
-                      final isSelected = _selectedSizes.contains(size);
-                      return FilterChip(
-                        label: Text(size),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedSizes.add(size);
-                            } else {
-                              _selectedSizes.remove(size);
-                            }
-                            _updateVariantTable();
-                          });
-                        },
-                        selectedColor: AppTheme.accentOrange.withValues(alpha: 0.3),
-                        checkmarkColor: AppTheme.accentOrange,
-                      );
-                    }).toList(),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Color Chips
-                  const Text('Ranglar:', style: TextStyle(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _allColors.map((color) {
-                      final isSelected = _selectedColors.contains(color);
-                      return FilterChip(
-                        label: Text(color),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedColors.add(color);
-                            } else {
-                              _selectedColors.remove(color);
-                            }
-                            _updateVariantTable();
-                          });
-                        },
-                        selectedColor: AppTheme.accentOrange.withValues(alpha: 0.3),
-                        checkmarkColor: AppTheme.accentOrange,
-                      );
-                    }).toList(),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Variant Table
-                  const Text('Variant jadvali:', style: TextStyle(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: SingleChildScrollView(
-                        child: _buildVariantTable(),
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  // Simple product - just quantity
-                  Expanded(
-                    child: Center(
-                      child: GlassCard(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Oddiy mahsulot (variantsiz)'),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: 200,
-                              child: TextFormField(
-                                initialValue: '1',
-                                decoration: const InputDecoration(
-                                  labelText: 'Soni',
-                                  prefixIcon: Icon(Icons.numbers),
-                                ),
-                                keyboardType: TextInputType.number,
-                                onChanged: (value) {
-                                  _variantQuantities['simple'] = int.tryParse(value) ?? 0;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                
-                const SizedBox(height: 16),
-                
-                // Save Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSaving ? null : _saveProduct,
-                    icon: _isSaving 
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(_isSaving ? 'Saqlanmoqda...' : 'Saqlash'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVariantTable() {
-    if (_selectedSizes.isEmpty || _selectedColors.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('O\'lcham va rang tanlang'),
-      );
-    }
-
-    final sizes = _selectedSizes.toList()..sort();
-    final colors = _selectedColors.toList();
-
-    return Table(
-      border: TableBorder.all(
-        color: AppTheme.glassBorder,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      children: [
-        // Header row
-        TableRow(
-          decoration: BoxDecoration(
-            color: AppTheme.accentOrange.withValues(alpha: 0.1),
-          ),
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text('Rang \\ O\'lcham', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            ...sizes.map((size) => Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(size, style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-            )),
-          ],
-        ),
-        // Data rows
-        ...colors.map((color) => TableRow(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(color),
-            ),
-            ...sizes.map((size) {
-              final key = '${size}_$color';
-              return Padding(
-                padding: const EdgeInsets.all(4),
-                child: SizedBox(
-                  width: 60,
-                  child: TextFormField(
-                    initialValue: '${_variantQuantities[key] ?? 0}',
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    ),
-                    onChanged: (value) {
-                      _variantQuantities[key] = int.tryParse(value) ?? 0;
-                    },
-                  ),
-                ),
-              );
-            }),
-          ],
-        )),
-      ],
-    );
-  }
-}
-
-/// Mahsulotni tahrirlash dialogi
-class _EditProductDialog extends StatefulWidget {
-  final Product product;
-
-  const _EditProductDialog({required this.product});
-
-  @override
-  State<_EditProductDialog> createState() => _EditProductDialogState();
-}
-
-class _EditProductDialogState extends State<_EditProductDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _priceController;
-  late TextEditingController _quantityController;
-  late String _selectedCategory;
-  bool _isSaving = false;
-
-  final List<String> categories = [
-    'Ko\'ylak', 'Shim', 'Yubka', 'Bluzka', 'Ko\'stum', 'Palto', 'Kurtka', 'Sport', 'Boshqa',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.product.name);
-    _priceController = TextEditingController(text: widget.product.price.toString());
-    _quantityController = TextEditingController(text: widget.product.quantity.toString());
-    _selectedCategory = widget.product.category;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _priceController.dispose();
-    _quantityController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveChanges() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isSaving = true);
-
-    try {
-      final updatedProduct = widget.product.copyWith(
-        name: _nameController.text.trim(),
-        category: _selectedCategory,
-        price: int.parse(_priceController.text),
-        quantity: int.parse(_quantityController.text),
-      );
-
-      await context.read<ProductProvider>().updateProduct(updatedProduct);
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${updatedProduct.name} yangilandi!'),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Xato: $e'), backgroundColor: AppTheme.accentRed),
-        );
-      }
-    }
-
-    setState(() => _isSaving = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: GlassCard(
-        blur: 20,
-        opacity: 0.95,
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 400,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.edit, color: AppTheme.accentOrange),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Mahsulotni tahrirlash',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: AppTheme.textSecondary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Tovar nomi', prefixIcon: Icon(Icons.shopping_bag)),
-                  validator: (v) => v?.isEmpty ?? true ? 'Nom kiriting' : null,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  decoration: const InputDecoration(labelText: 'Kategoriya', prefixIcon: Icon(Icons.category)),
-                  items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                  onChanged: (v) => setState(() => _selectedCategory = v!),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _priceController,
-                        decoration: const InputDecoration(labelText: 'Narxi', prefixIcon: Icon(Icons.attach_money)),
-                        keyboardType: TextInputType.number,
-                        validator: (v) => v?.isEmpty ?? true ? 'Narx kiriting' : null,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _quantityController,
-                        decoration: const InputDecoration(labelText: 'Soni', prefixIcon: Icon(Icons.numbers)),
-                        keyboardType: TextInputType.number,
-                        validator: (v) => v?.isEmpty ?? true ? 'Son kiriting' : null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Bekor'))),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveChanges,
-                        child: _isSaving
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('Saqlash'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
           ),
         ),
       ),

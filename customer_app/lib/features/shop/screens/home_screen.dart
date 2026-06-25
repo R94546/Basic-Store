@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
@@ -27,11 +28,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initializeVideo() async {
+    // Web (Telegram Mini App / PWA) da video o'rniga statik fon —
+    // video_player web'da ishonchli emas. Spinnerni o'chiramiz.
+    if (kIsWeb) {
+      if (mounted) setState(() => _isVideoInitialized = true);
+      return;
+    }
+
     final provider = context.read<VideoBackgroundProvider>();
     await provider.initialize();
-    
+
     _videoController = VideoPlayerController.asset(provider.currentVideoPath);
-    
+
     try {
       await _videoController!.initialize();
       _videoController!.setLooping(true);
@@ -60,6 +68,24 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // Video bo'lmaganda (web) — chiroyli statik fon
+          if (_videoController == null)
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF2B2B2B),
+                      Color(0xFF1A1A1A),
+                      Colors.black,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Video Background (full screen)
           if (_isVideoInitialized && _videoController != null)
             Positioned.fill(

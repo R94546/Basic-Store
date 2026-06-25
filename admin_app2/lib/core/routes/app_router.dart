@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../screens/dashboard/dashboard_screen.dart';
 import '../../screens/warehouse/warehouse_screen.dart';
 import '../../screens/pos/pos_screen.dart';
+import '../../screens/session/session_screen.dart';
+import '../../screens/clients/clients_screen.dart';
 import '../../screens/orders/orders_screen.dart';
 import '../../screens/discount/discount_screen.dart';
 import '../../screens/sales/sales_history_screen.dart';
@@ -40,6 +42,18 @@ class AppRouter {
             path: '/pos',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: POSScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/session',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SessionScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/clients',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ClientsScreen(),
             ),
           ),
           GoRoute(
@@ -100,6 +114,8 @@ class _MainShellState extends State<MainShell> {
     '/',
     '/warehouse',
     '/pos',
+    '/session',
+    '/clients',
     '/orders',
     '/discount',
     '/sales',

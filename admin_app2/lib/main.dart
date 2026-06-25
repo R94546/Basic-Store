@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
+import 'core/l10n/locale_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/telegram_provider.dart';
@@ -12,6 +13,10 @@ import 'providers/printer_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/sale_provider.dart';
 import 'providers/category_provider.dart';
+import 'providers/stock_in_provider.dart';
+import 'providers/session_provider.dart';
+import 'providers/client_provider.dart';
+import 'providers/debt_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +45,11 @@ class AdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        ChangeNotifierProvider(create: (_) => StockInProvider()),
+        ChangeNotifierProvider(create: (_) => SessionProvider()),
+        ChangeNotifierProvider(create: (_) => ClientProvider()),
+        ChangeNotifierProvider(create: (_) => DebtProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()..load()),
       ],
       child: MaterialApp.router(
         title: 'Ayollar Kiyim - Admin',

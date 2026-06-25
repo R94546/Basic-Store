@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
 import '../../providers/product_provider.dart';
@@ -23,6 +24,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -42,9 +44,9 @@ class _DiscountScreenState extends State<DiscountScreen> {
                   child: const Icon(Icons.discount, color: AppTheme.accentRed),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Chegirmalar',
-                  style: TextStyle(
+                Text(
+                  loc.t('discount.title'),
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
@@ -54,7 +56,7 @@ class _DiscountScreenState extends State<DiscountScreen> {
                 ElevatedButton.icon(
                   onPressed: _showAddDiscountDialog,
                   icon: const Icon(Icons.add),
-                  label: const Text('Chegirma qo\'shish'),
+                  label: Text(loc.t('discount.add')),
                 ),
               ],
             ),
@@ -84,17 +86,17 @@ class _DiscountScreenState extends State<DiscountScreen> {
                           color: AppTheme.textSecondary.withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Chegirmali mahsulotlar yo\'q',
-                          style: TextStyle(
+                        Text(
+                          loc.t('discount.noProducts'),
+                          style: const TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Tovarlarni tahrirlash orqali chegirma qo\'shing',
-                          style: TextStyle(color: AppTheme.textSecondary),
+                        Text(
+                          loc.t('discount.addHint'),
+                          style: const TextStyle(color: AppTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -141,6 +143,7 @@ class _DiscountProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return GlassCard(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -225,7 +228,7 @@ class _DiscountProductCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '$discountedPrice so\'m',
+                '$discountedPrice ${loc.t('common.sum')}',
                 style: const TextStyle(
                   color: AppTheme.accentRed,
                   fontWeight: FontWeight.bold,
@@ -249,19 +252,21 @@ class _DiscountProductCard extends StatelessWidget {
   }
 
   void _removeDiscount(BuildContext context) {
+    final loc = context.read<LocaleProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.gradientStart,
-        title: const Text('Chegirmani olib tashlash', style: TextStyle(color: AppTheme.textPrimary)),
+        title: Text(loc.t('discount.removeTitle'),
+            style: const TextStyle(color: AppTheme.textPrimary)),
         content: Text(
-          '"${product.name}" dan chegirmani olib tashlamoqchimisiz?',
+          '"${product.name}" ${loc.t('discount.removeConfirm')}',
           style: const TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Bekor'),
+            child: Text(loc.t('common.cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -271,7 +276,7 @@ class _DiscountProductCard extends StatelessWidget {
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentRed),
-            child: const Text('Olib tashlash'),
+            child: Text(loc.t('discount.remove')),
           ),
         ],
       ),
@@ -296,6 +301,7 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Dialog(
       backgroundColor: Colors.transparent,
       child: GlassCard(
@@ -312,10 +318,10 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
                 children: [
                   const Icon(Icons.discount, color: AppTheme.accentRed),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Chegirma qo\'shish',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      loc.t('discount.add'),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
                   ),
                   IconButton(
@@ -327,20 +333,20 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
               const SizedBox(height: 24),
 
               // Product selection
-              const Text('Mahsulotni tanlang:', style: TextStyle(color: AppTheme.textSecondary)),
+              Text(loc.t('discount.selectProduct'), style: const TextStyle(color: AppTheme.textSecondary)),
               const SizedBox(height: 8),
               Consumer<ProductProvider>(
                 builder: (context, provider, _) {
                   final products = provider.products.where((p) => p.discount == null || p.discount == 0).toList();
                   return DropdownButtonFormField<Product>(
                     value: _selectedProduct,
-                    decoration: const InputDecoration(
-                      hintText: 'Mahsulot tanlang',
-                      prefixIcon: Icon(Icons.shopping_bag),
+                    decoration: InputDecoration(
+                      hintText: loc.t('discount.selectProductHint'),
+                      prefixIcon: const Icon(Icons.shopping_bag),
                     ),
                     items: products.map((p) => DropdownMenuItem(
                       value: p,
-                      child: Text('${p.name} - ${p.price} so\'m'),
+                      child: Text('${p.name} - ${p.price} ${loc.t('common.sum')}'),
                     )).toList(),
                     onChanged: (v) => setState(() => _selectedProduct = v),
                   );
@@ -351,9 +357,9 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
               // Discount percentage
               TextField(
                 controller: _discountController,
-                decoration: const InputDecoration(
-                  labelText: 'Chegirma foizi (%)',
-                  prefixIcon: Icon(Icons.percent),
+                decoration: InputDecoration(
+                  labelText: loc.t('discount.percent'),
+                  prefixIcon: const Icon(Icons.percent),
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -377,8 +383,8 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
                           children: [
                             Text(_selectedProduct!.name, style: const TextStyle(color: AppTheme.textPrimary)),
                             Text(
-                              'Joriy: ${_selectedProduct!.price} so\'m → '
-                              'Chegirma: ${(_selectedProduct!.price * (100 - (int.tryParse(_discountController.text) ?? 0)) / 100).round()} so\'m',
+                              '${loc.t('discount.current')}: ${_selectedProduct!.price} ${loc.t('common.sum')} → '
+                              '${loc.t('product.discount')}: ${(_selectedProduct!.price * (100 - (int.tryParse(_discountController.text) ?? 0)) / 100).round()} ${loc.t('common.sum')}',
                               style: const TextStyle(color: AppTheme.accentRed, fontSize: 12),
                             ),
                           ],
@@ -392,12 +398,12 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
               // Buttons
               Row(
                 children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Bekor'))),
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(loc.t('common.cancel')))),
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _selectedProduct != null ? _applyDiscount : null,
-                      child: const Text('Qo\'llash'),
+                      child: Text(loc.t('discount.apply')),
                     ),
                   ),
                 ],
@@ -414,13 +420,15 @@ class _SelectProductForDiscountDialogState extends State<_SelectProductForDiscou
     final discount = int.tryParse(_discountController.text) ?? 0;
     if (discount <= 0 || discount > 100) return;
 
+    final loc = context.read<LocaleProvider>();
+    final name = _selectedProduct!.name;
     context.read<ProductProvider>().updateProduct(
       _selectedProduct!.copyWith(discount: discount),
     );
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_selectedProduct!.name} ga $discount% chegirma qo\'shildi'),
+        content: Text('$name: $discount% ${loc.t('discount.applied')}'),
         backgroundColor: AppTheme.accentGreen,
       ),
     );

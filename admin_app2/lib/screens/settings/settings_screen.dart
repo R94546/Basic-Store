@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/telegram_provider.dart';
 import '../../providers/printer_provider.dart';
@@ -37,8 +38,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showLanguageDialog() {
+    final loc = context.read<LocaleProvider>();
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => SimpleDialog(
+        title: Text(loc.t('settings.language')),
+        children: [
+          RadioListTile<String>(
+            value: 'uz',
+            groupValue: loc.lang,
+            title: const Text("O'zbekcha"),
+            activeColor: AppTheme.accentOrange,
+            onChanged: (v) {
+              loc.setLang('uz');
+              Navigator.pop(dialogCtx);
+            },
+          ),
+          RadioListTile<String>(
+            value: 'ru',
+            groupValue: loc.lang,
+            title: const Text('Русский'),
+            activeColor: AppTheme.accentOrange,
+            onChanged: (v) {
+              loc.setLang('ru');
+              Navigator.pop(dialogCtx);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -47,11 +81,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Header
           GlassCard(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: const Row(
+            child: Row(
               children: [
                 Text(
-                  'Sozlamalar',
-                  style: TextStyle(
+                  loc.t('nav.settings'),
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
@@ -73,12 +107,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     children: [
                       _SettingsCard(
+                        icon: Icons.language,
+                        title: loc.t('settings.language'),
+                        subtitle: loc.isUz ? "O'zbekcha" : 'Русский',
+                        onTap: _showLanguageDialog,
+                        trailing: Text(
+                          loc.lang.toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.accentOrange,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
                         icon: Icons.store,
-                        title: 'Do\'kon ma\'lumotlari',
-                        subtitle: 'Nomi, manzil, telefon',
+                        title: loc.t('settings.store'),
+                        subtitle: loc.t('settings.storeSubtitle'),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Tez orada qo\'shiladi...')),
+                            SnackBar(content: Text(loc.t('settings.comingSoon'))),
                           );
                         },
                       ),
@@ -88,10 +136,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         builder: (context, printerProvider, _) {
                           return _SettingsCard(
                             icon: Icons.print,
-                            title: 'Printer sozlamalari',
-                            subtitle: printerProvider.isConfigured 
+                            title: loc.t('settings.printerSettings'),
+                            subtitle: printerProvider.isConfigured
                                 ? printerProvider.selectedPrinter!.name
-                                : 'Sozlanmagan',
+                                : loc.t('settings.notConfigured'),
                             onTap: _showPrinterSettings,
                             trailing: printerProvider.isConfigured
                                 ? const Icon(
@@ -107,10 +155,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         builder: (context, telegramProvider, _) {
                           return _SettingsCard(
                             icon: Icons.telegram,
-                            title: 'Telegram bot',
-                            subtitle: telegramProvider.isConfigured 
-                                ? (telegramProvider.isEnabled ? 'Faol ✓' : 'O\'chirilgan')
-                                : 'Sozlanmagan',
+                            title: loc.t('settings.telegramBot'),
+                            subtitle: telegramProvider.isConfigured
+                                ? (telegramProvider.isEnabled
+                                    ? loc.t('settings.active')
+                                    : loc.t('settings.disabled'))
+                                : loc.t('settings.notConfigured'),
                             onTap: _showTelegramSettings,
                             trailing: telegramProvider.isConfigured
                                 ? Icon(
@@ -135,30 +185,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _SettingsCard(
                         icon: Icons.people,
-                        title: 'Xodimlar',
-                        subtitle: 'Foydalanuvchilar boshqaruvi',
+                        title: loc.t('settings.staff'),
+                        subtitle: loc.t('settings.staffSubtitle'),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Tez orada qo\'shiladi...')),
+                            SnackBar(content: Text(loc.t('settings.comingSoon'))),
                           );
                         },
                       ),
                       const SizedBox(height: 16),
                       _SettingsCard(
                         icon: Icons.backup,
-                        title: 'Zaxira nusxa',
-                        subtitle: 'Ma\'lumotlarni eksport qilish',
+                        title: loc.t('settings.backup'),
+                        subtitle: loc.t('settings.backupSubtitle'),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Tez orada qo\'shiladi...')),
+                            SnackBar(content: Text(loc.t('settings.comingSoon'))),
                           );
                         },
                       ),
                       const SizedBox(height: 16),
                       _SettingsCard(
                         icon: Icons.info,
-                        title: 'Dastur haqida',
-                        subtitle: 'Versiya: 1.0.0',
+                        title: loc.t('settings.about'),
+                        subtitle: '${loc.t('settings.version')}: 1.0.0',
                         onTap: () {
                           showAboutDialog(
                             context: context,
@@ -273,6 +323,7 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
   }
 
   Future<void> _printTestLabel() async {
+    final loc = context.read<LocaleProvider>();
     setState(() => _isPrintingTest = true);
     final success = await context.read<PrinterProvider>().printTestLabel();
     setState(() => _isPrintingTest = false);
@@ -280,9 +331,9 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success 
-              ? 'Test yorlig\'i chop etildi!' 
-              : 'Xato! Printer ulanishini tekshiring.'),
+          content: Text(success
+              ? loc.t('printer.testPrinted')
+              : loc.t('printer.testError')),
           backgroundColor: success ? AppTheme.accentGreen : AppTheme.accentRed,
         ),
       );
@@ -291,6 +342,7 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Dialog(
       backgroundColor: Colors.transparent,
       child: GlassCard(
@@ -319,9 +371,9 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Text(
-                    'Printer Sozlamalari',
-                    style: TextStyle(
+                  Text(
+                    loc.t('printer.title'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimary,
@@ -344,14 +396,14 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                   color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue),
-                    SizedBox(width: 12),
+                    const Icon(Icons.info_outline, color: Colors.blue),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Xprinter XP-370B termal printer aniqlandi. Printerni USB orqali ulang va drayverini o\'rnating.',
-                        style: TextStyle(fontSize: 13),
+                        loc.t('printer.info'),
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                   ],
@@ -364,20 +416,20 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Mavjud printerlar:',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  Text(
+                    loc.t('printer.available'),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   TextButton.icon(
                     onPressed: _isScanning ? null : _scanPrinters,
-                    icon: _isScanning 
+                    icon: _isScanning
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.refresh),
-                    label: const Text('Yangilash'),
+                    label: Text(loc.t('printer.refresh')),
                   ),
                 ],
               ),
@@ -398,11 +450,11 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                   if (provider.availablePrinters.isEmpty) {
                     return Container(
                       padding: const EdgeInsets.all(20),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          'Printer topilmadi.\nUSB kabelini ulang va qayta skanerlang.',
+                          loc.t('printer.notFound'),
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppTheme.textSecondary),
+                          style: const TextStyle(color: AppTheme.textSecondary),
                         ),
                       ),
                     );
@@ -429,7 +481,7 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                             ),
                           ),
                           subtitle: Text(
-                            printer.isDefault ? 'Default printer' : '',
+                            printer.isDefault ? loc.t('printer.default') : '',
                             style: const TextStyle(fontSize: 12),
                           ),
                           trailing: isSelected
@@ -440,7 +492,7 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('${printer.name} tanlandi'),
+                                  content: Text('${printer.name} ${loc.t('printer.selected')}'),
                                   backgroundColor: AppTheme.accentGreen,
                                 ),
                               );
@@ -463,15 +515,15 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                   return Column(
                     children: [
                       SwitchListTile(
-                        title: const Text('Chekni avtomatik chop etish'),
-                        subtitle: const Text('Har bir sotuvdan keyin'),
+                        title: Text(loc.t('printer.autoReceipt')),
+                        subtitle: Text(loc.t('printer.autoReceiptDesc')),
                         value: provider.autoPrintReceipt,
                         onChanged: (v) => provider.setAutoPrintReceipt(v),
                         activeColor: AppTheme.accentOrange,
                       ),
                       SwitchListTile(
-                        title: const Text('Yorliqni avtomatik chop etish'),
-                        subtitle: const Text('Yangi mahsulot qo\'shganda'),
+                        title: Text(loc.t('printer.autoLabel')),
+                        subtitle: Text(loc.t('printer.autoLabelDesc')),
                         value: provider.autoPrintLabel,
                         onChanged: (v) => provider.setAutoPrintLabel(v),
                         activeColor: AppTheme.accentOrange,
@@ -499,7 +551,7 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.print),
-                      label: const Text('Test yorlig\'i chop etish'),
+                      label: Text(loc.t('printer.testLabel')),
                     );
                   },
                 ),
@@ -548,6 +600,7 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
 
   Future<void> _saveSettings() async {
     if (!_formKey.currentState!.validate()) return;
+    final loc = context.read<LocaleProvider>();
 
     setState(() => _isSaving = true);
 
@@ -564,8 +617,8 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Telegram sozlamalari saqlandi!'),
+          SnackBar(
+            content: Text(loc.t('telegram.saved')),
             backgroundColor: AppTheme.accentGreen,
           ),
         );
@@ -574,7 +627,7 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Xato: $e'),
+            content: Text('${loc.t('common.error')}: $e'),
             backgroundColor: AppTheme.accentRed,
           ),
         );
@@ -585,10 +638,11 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
   }
 
   Future<void> _testConnection() async {
+    final loc = context.read<LocaleProvider>();
     if (_botTokenController.text.isEmpty || _chatIdController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Avval token va chat ID kiriting'),
+        SnackBar(
+          content: Text(loc.t('telegram.enterFirst')),
           backgroundColor: AppTheme.accentRed,
         ),
       );
@@ -608,9 +662,9 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success 
-              ? 'Test xabari yuborildi! Telegramni tekshiring.' 
-              : 'Xato! Token yoki Chat ID noto\'g\'ri.'),
+          content: Text(success
+              ? loc.t('telegram.testSent')
+              : loc.t('telegram.testError')),
           backgroundColor: success ? AppTheme.accentGreen : AppTheme.accentRed,
         ),
       );
@@ -628,6 +682,7 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     return Dialog(
       backgroundColor: Colors.transparent,
       child: GlassCard(
@@ -658,9 +713,9 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Text(
-                      'Telegram Bot Sozlamalari',
-                      style: TextStyle(
+                    Text(
+                      loc.t('telegram.title'),
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -682,15 +737,15 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                     color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('📌 Qanday sozlash:', style: TextStyle(fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Text('1. @BotFather ga /newbot yozing'),
-                      Text('2. Bot nomini va username kiriting'),
-                      Text('3. Olingan tokenni quyiga kiriting'),
-                      Text('4. @userinfobot orqali Chat ID oling'),
+                      Text(loc.t('telegram.howTo'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(loc.t('telegram.step1')),
+                      Text(loc.t('telegram.step2')),
+                      Text(loc.t('telegram.step3')),
+                      Text(loc.t('telegram.step4')),
                     ],
                   ),
                 ),
@@ -699,14 +754,14 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                 
                 TextFormField(
                   controller: _botTokenController,
-                  decoration: const InputDecoration(
-                    labelText: 'Bot Token',
+                  decoration: InputDecoration(
+                    labelText: loc.t('telegram.botToken'),
                     hintText: '123456:ABC-DEF1234ghIkl...',
-                    prefixIcon: Icon(Icons.key),
+                    prefixIcon: const Icon(Icons.key),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Bot tokenini kiriting';
-                    if (!value.contains(':')) return 'Token formati noto\'g\'ri';
+                    if (value == null || value.isEmpty) return loc.t('telegram.enterToken');
+                    if (!value.contains(':')) return loc.t('telegram.tokenFormat');
                     return null;
                   },
                 ),
@@ -721,7 +776,7 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                     prefixIcon: Icon(Icons.chat),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Chat ID kiriting';
+                    if (value == null || value.isEmpty) return loc.t('telegram.enterChatId');
                     return null;
                   },
                 ),
@@ -729,31 +784,31 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                 const SizedBox(height: 20),
                 
                 SwitchListTile(
-                  title: const Text('Xabarnomalar faol'),
+                  title: Text(loc.t('telegram.notifyEnabled')),
                   value: _isEnabled,
                   onChanged: (v) => setState(() => _isEnabled = v),
                   activeColor: AppTheme.accentOrange,
                 ),
-                
+
                 const Divider(),
-                
+
                 CheckboxListTile(
-                  title: const Text('Yangi buyurtmalar'),
-                  subtitle: const Text('Har bir buyurtmada xabar'),
+                  title: Text(loc.t('telegram.newOrders')),
+                  subtitle: Text(loc.t('telegram.newOrdersDesc')),
                   value: _orderNotifications,
                   onChanged: (v) => setState(() => _orderNotifications = v ?? true),
                   activeColor: AppTheme.accentOrange,
                 ),
                 CheckboxListTile(
-                  title: const Text('Stock Alert'),
-                  subtitle: const Text('Mahsulot tugaganda'),
+                  title: Text(loc.t('telegram.stockAlert')),
+                  subtitle: Text(loc.t('telegram.stockAlertDesc')),
                   value: _stockAlerts,
                   onChanged: (v) => setState(() => _stockAlerts = v ?? true),
                   activeColor: AppTheme.accentOrange,
                 ),
                 CheckboxListTile(
-                  title: const Text('Kunlik hisobot'),
-                  subtitle: const Text('Har kuni savdo statistikasi'),
+                  title: Text(loc.t('telegram.dailyReport')),
+                  subtitle: Text(loc.t('telegram.dailyReportDesc')),
                   value: _dailyReports,
                   onChanged: (v) => setState(() => _dailyReports = v ?? false),
                   activeColor: AppTheme.accentOrange,
@@ -769,7 +824,7 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                         icon: _isTesting 
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.send),
-                        label: const Text('Test'),
+                        label: Text(loc.t('telegram.test')),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -780,7 +835,7 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                         icon: _isSaving 
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.save),
-                        label: const Text('Saqlash'),
+                        label: Text(loc.t('common.save')),
                       ),
                     ),
                   ],

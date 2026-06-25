@@ -268,6 +268,12 @@ class _OrderCard extends StatelessWidget {
             ),
           ),
 
+          // Status stepper (yoki bekor qilingan banner)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _OrderStatusStepper(status: order.status),
+          ),
+
           // Items list
           Padding(
             padding: const EdgeInsets.all(16),
@@ -430,6 +436,121 @@ class _OrderCard extends StatelessWidget {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]} ',
         );
+  }
+}
+
+/// Buyurtma bosqichlari steppери:
+/// pending -> confirmed -> processing -> shipped -> delivered.
+/// Joriy va undan oldingi bosqichlar qora (bajarilgan), keyingilari kulrang.
+/// Bekor qilingan bo'lsa qizil banner ko'rsatiladi.
+class _OrderStatusStepper extends StatelessWidget {
+  final OrderStatus status;
+
+  const _OrderStatusStepper({required this.status});
+
+  static const List<OrderStatus> _stages = [
+    OrderStatus.pending,
+    OrderStatus.confirmed,
+    OrderStatus.processing,
+    OrderStatus.shipped,
+    OrderStatus.delivered,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+
+    // Bekor qilingan buyurtma uchun banner
+    if (status == OrderStatus.cancelled) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.08),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cancel_outlined, color: Colors.red, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              loc.t('orderStatus.cancelled').toUpperCase(),
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final currentIndex = _stages.indexOf(status);
+
+    return Row(
+      children: List.generate(_stages.length * 2 - 1, (i) {
+        // Toq indekslar - bog'lovchi chiziqlar
+        if (i.isOdd) {
+          final lineStageIndex = (i - 1) ~/ 2;
+          final done = lineStageIndex < currentIndex;
+          return Expanded(
+            child: Container(
+              height: 2,
+              margin: const EdgeInsets.only(bottom: 18),
+              color: done ? Colors.black : Colors.grey[300],
+            ),
+          );
+        }
+
+        // Juft indekslar - bosqich nuqtalari + label
+        final stageIndex = i ~/ 2;
+        final stage = _stages[stageIndex];
+        final done = stageIndex <= currentIndex;
+        final isCurrent = stageIndex == currentIndex;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: done ? Colors.black : Colors.white,
+                border: Border.all(
+                  color: done ? Colors.black : Colors.grey[400]!,
+                  width: 1.5,
+                ),
+              ),
+              child: isCurrent
+                  ? const Center(
+                      child: Icon(Icons.circle, size: 5, color: Colors.white),
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: 52,
+              child: Text(
+                orderStatusLabel(loc, stage),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 8,
+                  letterSpacing: 0.2,
+                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w400,
+                  color: done ? Colors.black : Colors.grey[500],
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
   }
 }
 

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:customer_app/core/l10n/locale_provider.dart';
 import '../models/product_model.dart';
-import 'product_detail_screen.dart';
+import '../widgets/product_card.dart';
 
 /// Kategoriya bo'yicha mahsulotlar ekrani
 class CategoryProductsScreen extends StatelessWidget {
@@ -91,145 +91,11 @@ class CategoryProductsScreen extends StatelessWidget {
               mainAxisSpacing: 16,
             ),
             itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return _ProductGridItem(
-                product: product,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ProductDetailScreen(product: product),
-                    ),
-                  );
-                },
-              );
-            },
+            itemBuilder: (context, index) =>
+                ProductCard(product: products[index]),
           );
         },
       ),
-    );
-  }
-}
-
-/// Grid mahsulot elementi - ZARA uslubi
-class _ProductGridItem extends StatelessWidget {
-  final Product product;
-  final VoidCallback onTap;
-
-  const _ProductGridItem({
-    required this.product,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hasDiscount = product.discount != null && product.discount! > 0;
-    final discountedPrice = hasDiscount
-        ? (product.price * (100 - product.discount!) / 100).round()
-        : product.price;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Rasm
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Stack(
-                children: [
-                  // Rasm
-                  product.images.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            product.images.first,
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          ),
-                        )
-                      : _placeholder(),
-                  
-                  // Chegirma badge
-                  if (hasDiscount)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        color: Colors.red,
-                        child: Text(
-                          '-${product.discount}%',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Nomi
-          Text(
-            product.name.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.5,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          
-          const SizedBox(height: 4),
-          
-          // Narx
-          Row(
-            children: [
-              if (hasDiscount) ...[
-                Text(
-                  '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} so\'m',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                '${discountedPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} so\'m',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: hasDiscount ? Colors.red : Colors.black,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _placeholder() {
-    return Center(
-      child: Icon(Icons.image_outlined, size: 32, color: Colors.grey[300]),
     );
   }
 }

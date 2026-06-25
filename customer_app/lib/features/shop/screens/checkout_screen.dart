@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -34,9 +35,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  /// Telefon raqamini normallashtirish: faqat raqamlar va boshidagi +
+  /// Telefon maydonidagi 9 ta mahalliy raqam (probellar bilan formatlangan).
+  /// To'liq normallashgan raqam: "+998" + 9 ta raqam.
+  String _localDigits(String raw) {
+    return raw.replaceAll(RegExp(r'\D'), '');
+  }
+
   String _normalizePhone(String raw) {
-    return raw.replaceAll(RegExp(r'[^\d+]'), '');
+    return '+998${_localDigits(raw)}';
   }
 
   Future<void> _placeOrder() async {
@@ -206,13 +212,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             _StyledTextField(
               controller: _phoneController,
               label: loc.t('checkout.phone'),
-              hint: '+998 XX XXX XX XX',
+              hint: '90 111 22 33',
+              prefixText: '+998 ',
               keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                _UzPhoneFormatter(),
+              ],
               validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return loc.t('checkout.required');
-                }
-                if (_normalizePhone(value).replaceAll('+', '').length < 9) {
+                final digits = _localDigits(value ?? '');
+                if (digits.length < 9) {
                   return loc.t('checkout.required');
                 }
                 return null;
@@ -394,6 +403,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 }
 
+/// O'zbek telefon raqamini formatlovchi: 9 ta raqamni "90 111 22 33"
+/// ko'rinishida (2 3 2 2) ajratadi va 9 ta raqamdan oshmaydi.
+class _UzPhoneFormatter extends TextInputFormatter {
+  static const List<int> _groups = [2, 3, 2, 2];
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 9) {
+      digits = digits.substring(0, 9);
+    }
+
+    final buffer = StringBuffer();
+    var index = 0;
+    for (final size in _groups) {
+      if (index >= digits.length) break;
+      if (buffer.isNotEmpty) buffer.write(' ');
+      final end =
+          (index + size) <= digits.length ? index + size : digits.length;
+      buffer.write(digits.substring(index, end));
+      index = end;
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   final String title;
 
@@ -419,6 +462,8 @@ class _StyledTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final int maxLines;
   final String? Function(String?)? validator;
+  final String? prefixText;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _StyledTextField({
     required this.controller,
@@ -427,6 +472,8 @@ class _StyledTextField extends StatelessWidget {
     this.keyboardType,
     this.maxLines = 1,
     this.validator,
+    this.prefixText,
+    this.inputFormatters,
   });
 
   @override
@@ -436,9 +483,16 @@ class _StyledTextField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        prefixText: prefixText,
+        prefixStyle: const TextStyle(
+          color: Colors.black,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         labelStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
         filled: true,

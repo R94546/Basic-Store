@@ -29,6 +29,9 @@ class AppStrings {
     'home.popular': {'uz': 'Ommabop', 'ru': 'Популярное'},
     'home.shopNow': {'uz': 'XARID QILISH', 'ru': 'В МАГАЗИН'},
     'home.welcome': {'uz': 'Xush kelibsiz', 'ru': 'Добро пожаловать'},
+    'home.sale': {'uz': 'Chegirmalar', 'ru': 'Скидки'},
+    'home.collection': {'uz': 'Kolleksiya', 'ru': 'Коллекция'},
+    'home.discountUpTo': {'uz': 'CHEGIRMA', 'ru': 'СКИДКА'},
 
     // Qidiruv
     'search.hint': {'uz': 'Mahsulot qidirish...', 'ru': 'Поиск товаров...'},

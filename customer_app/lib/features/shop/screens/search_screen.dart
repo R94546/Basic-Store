@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,7 +5,7 @@ import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/theme/app_theme.dart';
 import '../models/product_model.dart';
 import '../providers/catalog_provider.dart';
-import 'product_detail_screen.dart';
+import '../widgets/product_card.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -157,16 +156,7 @@ class _SearchScreenState extends State<SearchScreen> {
         childAspectRatio: 0.56,
       ),
       itemCount: results.length,
-      itemBuilder: (_, i) => _ProductCard(
-        product: results[i],
-        loc: loc,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ProductDetailScreen(product: results[i]),
-          ),
-        ),
-      ),
+      itemBuilder: (_, i) => ProductCard(product: results[i]),
     );
   }
 
@@ -189,98 +179,5 @@ class _SearchScreenState extends State<SearchScreen> {
         ],
       ),
     );
-  }
-}
-
-class _ProductCard extends StatelessWidget {
-  final Product product;
-  final LocaleProvider loc;
-  final VoidCallback onTap;
-
-  const _ProductCard({
-    required this.product,
-    required this.loc,
-    required this.onTap,
-  });
-
-  bool get _hasDiscount => product.discount != null && product.discount! > 0;
-
-  int get _finalPrice => _hasDiscount
-      ? (product.price * (100 - product.discount!) / 100).round()
-      : product.price;
-
-  @override
-  Widget build(BuildContext context) {
-    final img = product.images.isNotEmpty ? product.images.first : null;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              color: Colors.grey[100],
-              child: img == null
-                  ? Icon(Icons.checkroom, size: 48, color: Colors.grey[300])
-                  : CachedNetworkImage(
-                      imageUrl: img,
-                      fit: BoxFit.cover,
-                      placeholder: (ctx, url) =>
-                          Container(color: Colors.grey[100]),
-                      errorWidget: (ctx, url, err) => Icon(Icons.checkroom,
-                          size: 48, color: Colors.grey[300]),
-                    ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            product.name.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(
-                '${_money(_finalPrice)} ${loc.t('common.sum')}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _hasDiscount ? Colors.red : Colors.black,
-                ),
-              ),
-              if (_hasDiscount) ...[
-                const SizedBox(width: 6),
-                Text(
-                  _money(product.price),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _money(int v) {
-    final s = v.toString();
-    final b = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write(' ');
-      b.write(s[i]);
-    }
-    return b.toString();
   }
 }

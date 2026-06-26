@@ -471,5 +471,16 @@ class AppStrings {
 
     // ===== Misc =====
     'common.created': {'uz': 'Yaratildi', 'ru': 'Создано'},
+
+    // ===== Autentifikatsiya =====
+    'auth.title': {'uz': 'Kirish', 'ru': 'Вход'},
+    'auth.email': {'uz': 'Email', 'ru': 'Email'},
+    'auth.password': {'uz': 'Parol', 'ru': 'Пароль'},
+    'auth.login': {'uz': 'Kirish', 'ru': 'Войти'},
+    'auth.loginError': {
+      'uz': "Email yoki parol noto'g'ri",
+      'ru': 'Неверный email или пароль'
+    },
+    'auth.logout': {'uz': 'Chiqish', 'ru': 'Выход'},
   };
 }

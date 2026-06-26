@@ -6,6 +6,7 @@ import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/telegram_provider.dart';
 import '../../providers/printer_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -218,6 +219,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
                         },
                       ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.logout,
+                        title: loc.t('auth.logout'),
+                        subtitle: context
+                                .watch<AuthProvider>()
+                                .currentUser
+                                ?.email ??
+                            '',
+                        color: AppTheme.accentRed,
+                        onTap: () {
+                          context.read<AuthProvider>().signOut();
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -236,6 +251,7 @@ class _SettingsCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final Widget? trailing;
+  final Color? color;
 
   const _SettingsCard({
     required this.icon,
@@ -243,10 +259,12 @@ class _SettingsCard extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.trailing,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accent = color ?? AppTheme.accentOrange;
     return GlassCard(
       child: InkWell(
         onTap: onTap,
@@ -256,12 +274,12 @@ class _SettingsCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.accentOrange.withValues(alpha: 0.2),
+                color: accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: AppTheme.accentOrange,
+                color: accent,
               ),
             ),
             const SizedBox(width: 16),
@@ -271,9 +289,9 @@ class _SettingsCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: color ?? AppTheme.textPrimary,
                       fontSize: 16,
                     ),
                   ),

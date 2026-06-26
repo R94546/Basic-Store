@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
 import 'core/l10n/locale_provider.dart';
+import 'screens/auth/login_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/telegram_provider.dart';
@@ -51,11 +53,40 @@ class AdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DebtProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()..load()),
       ],
-      child: MaterialApp.router(
-        title: 'Ayollar Kiyim - Admin',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        routerConfig: AppRouter.router,
+      child: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          // Yuklanmoqda
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return MaterialApp(
+              theme: AppTheme.lightTheme,
+              debugShowCheckedModeBanner: false,
+              home: const GradientBackground(
+                child: Scaffold(
+                  backgroundColor: Colors.transparent,
+                  body: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            );
+          }
+
+          // Tizimga kirilmagan
+          if (snapshot.data == null) {
+            return MaterialApp(
+              theme: AppTheme.lightTheme,
+              debugShowCheckedModeBanner: false,
+              home: const GradientBackground(child: LoginScreen()),
+            );
+          }
+
+          // Tizimga kirilgan
+          return MaterialApp.router(
+            title: 'Ayollar Kiyim - Admin',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            routerConfig: AppRouter.router,
+          );
+        },
       ),
     );
   }

@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Faqat admin (do'kon egasi)
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == 'sG47ERuLIdSFeWI84ErNYy2y2b02';
+    }
+
+    // Mahsulotlar — hamma o'qiydi (mijoz katalogi), faqat admin yozadi
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+      match /variants/{vid} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    // Kategoriyalar — hamma o'qiydi, admin yozadi
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Buyurtmalar — mijoz yaratadi va o'qiydi; faqat admin o'zgartiradi/o'chiradi
+    match /orders/{id} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Qolgan hammasi (sotuvlar, mijozlar, qarzlar, smenalar, prixod,
+    // sozlamalar...) — faqat admin
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

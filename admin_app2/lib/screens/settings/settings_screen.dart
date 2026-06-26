@@ -367,8 +367,13 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
         blur: 20,
         opacity: 0.95,
         padding: const EdgeInsets.all(24),
-        child: SizedBox(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          child: SizedBox(
           width: 500,
+          child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,6 +581,8 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
               ),
             ],
           ),
+          ),
+          ),
         ),
       ),
     );
@@ -707,10 +714,15 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
         blur: 20,
         opacity: 0.95,
         padding: const EdgeInsets.all(24),
-        child: SizedBox(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          child: SizedBox(
           width: 500,
           child: Form(
             key: _formKey,
+            child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -860,6 +872,8 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
                 ),
               ],
             ),
+            ),
+          ),
           ),
         ),
       ),

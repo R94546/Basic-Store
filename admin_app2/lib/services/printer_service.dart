@@ -84,7 +84,7 @@ class PrinterService {
 
       final sub = [size, color]
           .where((e) => e != null && e.trim().isNotEmpty)
-          .join(' • ');
+          .join(' / ');
 
       for (int i = 0; i < copies; i++) {
         pdf.addPage(
@@ -154,7 +154,6 @@ class PrinterService {
       await Printing.directPrintPdf(
         printer: _selectedPrinter!,
         onLayout: (_) => bytes,
-        usePrinterSettings: true,
       );
 
       return true;

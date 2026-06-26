@@ -985,14 +985,13 @@ class _LabelSizeEditorState extends State<_LabelSizeEditor> {
             ),
           ),
           SizedBox(
-            width: 60,
+            width: 56,
             child: TextField(
               controller: _w,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                  isDense: true, suffixText: 'mm'),
+              decoration: const InputDecoration(isDense: true),
               onChanged: (_) => _save(),
             ),
           ),
@@ -1001,16 +1000,19 @@ class _LabelSizeEditorState extends State<_LabelSizeEditor> {
             child: Text('×'),
           ),
           SizedBox(
-            width: 60,
+            width: 56,
             child: TextField(
               controller: _h,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                  isDense: true, suffixText: 'mm'),
+              decoration: const InputDecoration(isDense: true),
               onChanged: (_) => _save(),
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Text('mm', style: TextStyle(color: AppTheme.textSecondary)),
           ),
         ],
       ),

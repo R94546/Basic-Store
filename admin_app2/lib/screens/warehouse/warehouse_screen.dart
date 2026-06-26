@@ -7,7 +7,7 @@ import '../../core/l10n/locale_provider.dart';
 import '../../models/product.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/category_provider.dart';
-import '../../providers/printer_provider.dart';
+import '../../widgets/label_print_dialog.dart';
 import '../stockin/stockin_screen.dart';
 import 'add_product_screen.dart';
 
@@ -305,32 +305,7 @@ class _ProductCard extends StatelessWidget {
   }
 
   Future<void> _printLabel(BuildContext context) async {
-    final printer = context.read<PrinterProvider>();
-    final loc = context.read<LocaleProvider>();
-    final messenger = ScaffoldMessenger.of(context);
-    if (!printer.isConfigured) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(loc.t('printer.notConfigured')),
-          backgroundColor: AppTheme.accentRed,
-        ),
-      );
-      return;
-    }
-    final ok = await printer.printProductLabel(
-      productName: product.name,
-      barcode: product.barcode,
-      price: product.price.toString(),
-      size: product.size,
-      color: product.color,
-    );
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-            ok ? loc.t('printer.labelPrinted') : loc.t('printer.printError')),
-        backgroundColor: ok ? AppTheme.accentGreen : AppTheme.accentRed,
-      ),
-    );
+    await showLabelPrintDialog(context, product);
   }
 
   @override

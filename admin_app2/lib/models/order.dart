@@ -118,6 +118,8 @@ class CustomerOrder {
   final String customerName;
   final String customerPhone;
   final String? customerAddress;
+  final double? customerLat;
+  final double? customerLng;
   final String? customerPhoto;
   final String? customerUsername;
   final List<CartItem> items;
@@ -135,6 +137,8 @@ class CustomerOrder {
     required this.customerName,
     required this.customerPhone,
     this.customerAddress,
+    this.customerLat,
+    this.customerLng,
     this.customerPhoto,
     this.customerUsername,
     required this.items,
@@ -155,6 +159,8 @@ class CustomerOrder {
       'customerName': customerName,
       'customerPhone': customerPhone,
       'customerAddress': customerAddress,
+      if (customerLat != null) 'customerLat': customerLat,
+      if (customerLng != null) 'customerLng': customerLng,
       'customerPhoto': customerPhoto,
       'customerUsername': customerUsername,
       'items': items.map((e) => e.toMap()).toList(),
@@ -176,6 +182,8 @@ class CustomerOrder {
       customerName: data['customerName'] ?? '',
       customerPhone: data['customerPhone'] ?? '',
       customerAddress: data['customerAddress'],
+      customerLat: (data['customerLat'] as num?)?.toDouble(),
+      customerLng: (data['customerLng'] as num?)?.toDouble(),
       customerPhoto: data['customerPhoto'],
       customerUsername: data['customerUsername'],
       items: (data['items'] as List<dynamic>?)
@@ -201,6 +209,8 @@ class CustomerOrder {
     String? customerName,
     String? customerPhone,
     String? customerAddress,
+    double? customerLat,
+    double? customerLng,
     String? customerPhoto,
     String? customerUsername,
     List<CartItem>? items,
@@ -218,6 +228,8 @@ class CustomerOrder {
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       customerAddress: customerAddress ?? this.customerAddress,
+      customerLat: customerLat ?? this.customerLat,
+      customerLng: customerLng ?? this.customerLng,
       customerPhoto: customerPhoto ?? this.customerPhoto,
       customerUsername: customerUsername ?? this.customerUsername,
       items: items ?? this.items,

@@ -139,6 +139,7 @@ class PrinterProvider extends ChangeNotifier {
     required String price,
     required String size,
     String? color,
+    String? article,
     int copies = 1,
   }) async {
     if (_selectedPrinter == null) {
@@ -152,6 +153,7 @@ class PrinterProvider extends ChangeNotifier {
       price: price,
       size: size,
       color: color,
+      article: article,
       copies: copies,
     );
   }

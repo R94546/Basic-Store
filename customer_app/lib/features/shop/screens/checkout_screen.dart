@@ -10,6 +10,7 @@ import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/telegram/telegram_service.dart';
 import '../providers/cart_provider.dart';
 import '../models/order_model.dart';
+import 'map_picker_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -26,6 +27,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _notesController = TextEditingController();
 
   bool _isLoading = false;
+  double? _selectedLat;
+  double? _selectedLng;
 
   @override
   void initState() {
@@ -56,6 +59,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return '+998${_localDigits(raw)}';
   }
 
+  Future<void> _pickFromMap() async {
+    final loc = context.read<LocaleProvider>();
+    final result = await Navigator.push<MapPickerResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapPickerScreen(
+          initialLat: _selectedLat,
+          initialLng: _selectedLng,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _selectedLat = result.lat;
+      _selectedLng = result.lng;
+      _addressController.text = result.address;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(loc.t('checkout.locationSelected'))),
+    );
+  }
+
   Future<void> _placeOrder() async {
     final loc = context.read<LocaleProvider>();
     if (!_formKey.currentState!.validate()) return;
@@ -79,6 +104,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         customerName: _nameController.text.trim(),
         customerPhone: normalizedPhone,
         customerAddress: _addressController.text.trim(),
+        customerLat: _selectedLat,
+        customerLng: _selectedLng,
         customerPhoto: tg?.photoUrl,
         customerUsername: tg?.username,
         items: cart.items,
@@ -263,6 +290,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 }
                 return null;
               },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Xaritadan manzil tanlash
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _pickFromMap,
+                icon: Icon(
+                  _selectedLat != null ? Icons.check_circle : Icons.map_outlined,
+                  size: 18,
+                  color: _selectedLat != null ? Colors.green : Colors.black,
+                ),
+                label: Text(
+                  loc.t('checkout.pickFromMap').toUpperCase(),
+                  style: const TextStyle(letterSpacing: 1, fontSize: 12),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  side: const BorderSide(color: Colors.black, width: 1),
+                  shape: const RoundedRectangleBorder(),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
             ),
 
             const SizedBox(height: 32),

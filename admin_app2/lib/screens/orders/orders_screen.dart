@@ -1,3 +1,6 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -372,6 +375,32 @@ class _OrderCard extends StatelessWidget {
             _InfoRow(
               icon: Icons.location_on_outlined,
               text: order.customerAddress!,
+            ),
+          if (order.customerLat != null && order.customerLng != null)
+            InkWell(
+              onTap: () => html.window.open(
+                'https://www.google.com/maps?q=${order.customerLat},${order.customerLng}',
+                '_blank',
+              ),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.map_outlined,
+                        size: 18, color: AppTheme.accentOrange),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.t('orders.openMap'),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.accentOrange,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           if (order.notes != null && order.notes!.isNotEmpty)
             _InfoRow(

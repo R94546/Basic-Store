@@ -97,6 +97,45 @@ class AppStrings {
     'stockin.qtyIncoming': {'uz': 'Kelgan soni', 'ru': 'Поступило'},
     'stockin.history': {'uz': 'Prixod tarixi', 'ru': 'История прихода'},
     'stockin.todayTotal': {'uz': 'Bugungi prixod', 'ru': 'Приход за сегодня'},
+    'stockin.pickProduct': {
+      'uz': 'Avval tovarni tanlang',
+      'ru': 'Сначала выберите товар'
+    },
+    'stockin.fillQtyPrice': {
+      'uz': "Soni va kelish narxini to'ldiring",
+      'ru': 'Заполните кол-во и цену прихода'
+    },
+    'stockin.byVariant': {
+      'uz': 'Variantlar bo\'yicha qabul',
+      'ru': 'Приём по вариантам'
+    },
+    'stockin.perPieceLabels': {
+      'uz': 'Har dona uchun alohida etiketka (aks holda — 1 ta)',
+      'ru': 'Этикетка на каждую штуку (иначе — 1 шт.)'
+    },
+
+    // ===== Etiketka / Asboblar =====
+    'label.copies': {'uz': 'Nusxa', 'ru': 'Копии'},
+    'form.barcodeAuto': {'uz': '(avtomatik)', 'ru': '(авто)'},
+    'tools.normalizeBarcodes': {
+      'uz': 'Shtrixlarni tartiblash',
+      'ru': 'Упорядочить штрих-коды'
+    },
+    'tools.normalizeBarcodesShort': {
+      'uz': "Bo'sh/takroriy shtrixlarni to'g'rilash",
+      'ru': 'Исправить пустые/повторяющиеся'
+    },
+    'tools.normalizeBarcodesDesc': {
+      'uz': "Shtrixi bo'sh yoki takrorlangan barcha tovar va variantlarga yangi "
+          "unikal ichki shtrix beriladi. Mavjud to'g'ri shtrixlar saqlanadi.",
+      'ru': 'Всем товарам и вариантам с пустым или повторяющимся штрих-кодом '
+          'будет присвоен новый уникальный внутренний код. Корректные коды '
+          'сохранятся.'
+    },
+    'tools.normalizeDone': {
+      'uz': "Yangilangan SKU'lar soni",
+      'ru': 'Обновлено SKU'
+    },
 
     // ===== Smena =====
     'session.title': {'uz': 'Kassa smenasi', 'ru': 'Смена кассы'},
@@ -136,6 +175,10 @@ class AppStrings {
     'orders.devDesc': {
       'uz': 'Bu bo\'lim tez kunda ishga tushadi',
       'ru': 'Этот раздел скоро будет доступен'
+    },
+    'orders.openMap': {
+      'uz': 'Xaritada ochish',
+      'ru': 'Открыть на карте'
     },
 
     // ===== Buyurtmalar (mijoz buyurtmalari) =====

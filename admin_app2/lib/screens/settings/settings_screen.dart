@@ -6,6 +6,7 @@ import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/telegram_provider.dart';
 import '../../providers/printer_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -36,6 +37,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => const _PrinterSettingsDialog(),
+    );
+  }
+
+  Future<void> _normalizeBarcodes() async {
+    final loc = context.read<LocaleProvider>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.gradientStart,
+        title: Text(loc.t('tools.normalizeBarcodes'),
+            style: const TextStyle(color: AppTheme.textPrimary)),
+        content: Text(loc.t('tools.normalizeBarcodesDesc'),
+            style: const TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.t('common.cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(loc.t('common.confirm')),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    int fixed = 0;
+    try {
+      fixed = await context.read<ProductProvider>().normalizeBarcodes();
+    } catch (_) {}
+    if (!mounted) return;
+    Navigator.pop(context); // progress
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${loc.t('tools.normalizeDone')}: $fixed'),
+        backgroundColor: AppTheme.accentGreen,
+      ),
     );
   }
 
@@ -204,6 +248,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             SnackBar(content: Text(loc.t('settings.comingSoon'))),
                           );
                         },
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.qr_code_2,
+                        title: loc.t('tools.normalizeBarcodes'),
+                        subtitle: loc.t('tools.normalizeBarcodesShort'),
+                        onTap: _normalizeBarcodes,
                       ),
                       const SizedBox(height: 16),
                       _SettingsCard(
@@ -617,6 +668,8 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
 
   void _loadCurrentSettings() {
     final provider = context.read<TelegramProvider>();
+    _botTokenController.text = provider.botToken;
+    _chatIdController.text = provider.chatId;
     _isEnabled = provider.isEnabled;
     _orderNotifications = provider.orderNotifications;
     _stockAlerts = provider.stockAlerts;

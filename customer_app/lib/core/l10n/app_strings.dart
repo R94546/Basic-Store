@@ -85,6 +85,28 @@ class AppStrings {
       'ru': 'Мы скоро с вами свяжемся'
     },
     'checkout.required': {'uz': 'Majburiy maydon', 'ru': 'Обязательное поле'},
+    'checkout.pickFromMap': {
+      'uz': 'Xaritadan tanlash',
+      'ru': 'Выбрать на карте'
+    },
+    'checkout.locationSelected': {
+      'uz': 'Joylashuv tanlandi',
+      'ru': 'Местоположение выбрано'
+    },
+
+    // Xarita
+    'map.title': {'uz': 'Manzilni tanlang', 'ru': 'Выберите адрес'},
+    'map.hint': {
+      'uz': 'Xaritani suring — markazdagi belgi manzilni ko\'rsatadi',
+      'ru': 'Двигайте карту — метка в центре указывает адрес'
+    },
+    'map.confirm': {'uz': 'Tasdiqlash', 'ru': 'Подтвердить'},
+    'map.searching': {'uz': 'Manzil aniqlanmoqda...', 'ru': 'Определяем адрес...'},
+    'map.myLocation': {'uz': 'Mening joylashuvim', 'ru': 'Моё местоположение'},
+    'map.locationError': {
+      'uz': 'Joylashuvni aniqlab bo\'lmadi',
+      'ru': 'Не удалось определить местоположение'
+    },
 
     // Buyurtmalar
     'orders.title': {'uz': 'Buyurtmalarim', 'ru': 'Мои заказы'},

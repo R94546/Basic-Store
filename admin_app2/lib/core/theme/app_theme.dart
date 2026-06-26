@@ -49,7 +49,7 @@ class AppTheme {
       iconTheme: IconThemeData(color: textPrimary),
     ),
     cardTheme: CardThemeData(
-      color: glassWhite.withOpacity(0.2),
+      color: glassWhite.withOpacity(0.55),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -57,7 +57,7 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: glassWhite.withOpacity(0.3),
+      fillColor: glassWhite.withOpacity(0.55),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -143,7 +143,7 @@ class GlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.blur = 10,
-    this.opacity = 0.25,
+    this.opacity = 0.6,
     this.padding,
     this.margin,
     this.borderRadius = 20,

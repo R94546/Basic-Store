@@ -17,6 +17,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/sale_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../services/printer_service.dart';
+import '../../utils/barcode_util.dart';
 
 /// Kassa (POS) — parallel cheklar, variant tanlash, aralash to'lov,
 /// smena nazorati va chek chop etish bilan.
@@ -96,7 +97,9 @@ class _POSScreenState extends State<POSScreen> {
   // ===== Savatga qo'shish =====
   Future<void> _onProductTap(Product product) async {
     if (product.hasVariants) {
-      final variants = await context.read<ProductProvider>().getVariants(product.id!);
+      final pp = context.read<ProductProvider>();
+      var variants = pp.cachedVariants(product.id!);
+      if (variants.isEmpty) variants = await pp.getVariants(product.id!);
       if (!mounted) return;
       if (variants.isNotEmpty) {
         final chosen = await showDialog<ProductVariant>(
@@ -147,22 +150,23 @@ class _POSScreenState extends State<POSScreen> {
   }
 
   Future<void> _onSearchSubmit(String value) async {
-    if (value.isEmpty) return;
+    final code = value.trim();
+    if (code.isEmpty) return;
     final pp = context.read<ProductProvider>();
-    final p = pp.findByBarcode(value.trim());
-    if (p != null) {
-      if (p.hasVariants) {
-        await _onProductTap(p);
+    // Shtrix yoki artikul (qisqa raqam) bo'yicha — darhol, xotiradan.
+    final hit = pp.findByCode(code);
+    if (hit != null) {
+      if (hit.variant != null) {
+        _addToCart(hit.product, variant: hit.variant);
+      } else if (hit.product.hasVariants) {
+        await _onProductTap(hit.product);
       } else {
-        _addToCart(p);
+        _addToCart(hit.product);
       }
-    } else {
-      // Variant shtrix kodi bo'yicha
-      final match = await pp.findVariantByBarcode(value.trim());
-      if (!mounted) return;
-      if (match != null) {
-        _addToCart(match.product, variant: match.variant);
-      }
+    } else if (code.length >= 8) {
+      // Faqat shtrixsimon uzun kod topilmasa ogohlantiramiz; qisqa matn yozsa
+      // ro'yxat filtri o'zi ishlaydi.
+      _toast(_loc.t('common.notFound'), AppTheme.accentRed);
     }
     _searchController.clear();
     setState(() {});
@@ -394,7 +398,8 @@ class _POSScreenState extends State<POSScreen> {
                 products = products
                     .where((p) =>
                         p.name.toLowerCase().contains(q) ||
-                        p.barcode.contains(q))
+                        p.barcode.contains(q) ||
+                        BarcodeUtil.articleOf(p.barcode).contains(q))
                     .toList();
               }
               if (products.isEmpty) {

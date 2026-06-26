@@ -4,6 +4,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../utils/barcode_util.dart';
+
 /// Termal printer xizmati - Xprinter XP-370B uchun
 class PrinterService {
   static final PrinterService _instance = PrinterService._internal();
@@ -42,12 +44,18 @@ class PrinterService {
     required String price,
     required String size,
     String? color,
+    String? article,
     int copies = 1,
   }) async {
     if (_selectedPrinter == null) {
       debugPrint('No printer selected');
       return false;
     }
+
+    // Artikul berilmasa shtrixdan chiqarib olamiz (ichki "200…" kodlar uchun).
+    final art = (article != null && article.isNotEmpty)
+        ? article
+        : BarcodeUtil.articleOf(barcode);
 
     try {
       final pdf = pw.Document();
@@ -64,14 +72,30 @@ class PrinterService {
               return pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
-                  // Mahsulot nomi
-                  pw.Text(
-                    productName,
-                    style: pw.TextStyle(
-                      fontSize: 8,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    maxLines: 1,
+                  // Mahsulot nomi + artikul (skaner ishlamasa qo'lda terish uchun)
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        child: pw.Text(
+                          productName,
+                          style: pw.TextStyle(
+                            fontSize: 8,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
+                      if (art.isNotEmpty)
+                        pw.Text(
+                          'Art:$art',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                    ],
                   ),
                   pw.SizedBox(height: 2),
                   // Razmer va rang

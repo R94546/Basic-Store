@@ -102,7 +102,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       text: p?.discount != null ? p!.discount.toString() : '',
     );
     _barcodeController = TextEditingController(
-      text: p?.barcode ?? BarcodeUtil.generateEan13(),
+      text: p?.barcode ?? '',
     );
 
     _selectedCategory = p?.category;
@@ -145,9 +145,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         size: 'M',
         color: _colorOptions.first,
         quantity: TextEditingController(text: '0'),
-        barcode: BarcodeUtil.generateEan13(
-          seed: DateTime.now().millisecondsSinceEpoch + _variants.length,
-        ),
+        // Bo'sh — saqlashda avtomatik unikal ichki shtrix beriladi.
+        barcode: '',
       ));
     });
   }
@@ -210,9 +209,12 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       final buyPrice = int.tryParse(_buyPriceController.text) ?? 0;
       final price = int.parse(_priceController.text);
       final discount = int.tryParse(_discountController.text);
-      final barcode = _barcodeController.text.trim().isEmpty
-          ? BarcodeUtil.generateEan13()
-          : _barcodeController.text.trim();
+      // Oddiy tovar: shtrix bo'sh bo'lsa avtomatik beriladi (yangi tovarda —
+      // provider, tahrirda — shu yerda). Variantli tovarda shtrix variantlarda.
+      var barcode = _barcodeController.text.trim();
+      if (_isEdit && !_hasVariants && barcode.isEmpty) {
+        barcode = BarcodeUtil.fromSeq(await provider.allocateSku());
+      }
 
       final totalQty = _hasVariants
           ? _variantTotalQty
@@ -564,12 +566,10 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(
-          onPressed: () {
-            setState(() {
-              _barcodeController.text = BarcodeUtil.generateEan13(
-                seed: DateTime.now().millisecondsSinceEpoch,
-              );
-            });
+          onPressed: () async {
+            final code = BarcodeUtil.fromSeq(
+                await context.read<ProductProvider>().allocateSku());
+            if (mounted) setState(() => _barcodeController.text = code);
           },
           icon: const Icon(Icons.autorenew, size: 18),
           label: Text(loc.t('product.generateBarcode')),
@@ -779,7 +779,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         title: Text(loc.t('product.barcode'),
             style: const TextStyle(color: AppTheme.textPrimary)),
         content: Text(
-          '${row.size} • ${row.color}\n${row.barcode}',
+          '${row.size} • ${row.color}\n'
+          '${row.barcode.isEmpty ? loc.t('form.barcodeAuto') : row.barcode}',
           style: const TextStyle(
               color: AppTheme.textSecondary,
               fontFamily: 'monospace',
@@ -787,13 +788,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              setState(() {
-                row.barcode = BarcodeUtil.generateEan13(
-                  seed: DateTime.now().millisecondsSinceEpoch,
-                );
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              final code = BarcodeUtil.fromSeq(
+                  await context.read<ProductProvider>().allocateSku());
+              if (mounted) setState(() => row.barcode = code);
+              if (context.mounted) Navigator.pop(context);
             },
             child: Text(loc.t('product.generateBarcode')),
           ),

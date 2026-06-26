@@ -17,6 +17,8 @@ class TelegramProvider extends ChangeNotifier {
 
   bool get isEnabled => _isEnabled;
   bool get isConfigured => _botToken.isNotEmpty && _chatId.isNotEmpty;
+  String get botToken => _botToken;
+  String get chatId => _chatId;
   bool get orderNotifications => _orderNotifications;
   bool get stockAlerts => _stockAlerts;
   bool get dailyReports => _dailyReports;

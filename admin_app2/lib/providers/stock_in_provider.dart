@@ -42,24 +42,34 @@ class StockInProvider extends ChangeNotifier {
 
   /// Prixod qo'shish — tovar soni oshadi, kelish (va ixtiyoriy sotish) narxi
   /// yangilanadi.
-  Future<bool> addStockIn(StockIn stockIn, {int? sellPrice}) async {
+  ///
+  /// [updateStock] false bo'lsa — faqat tarix yozuvi yoziladi, tovar soniga
+  /// tegilmaydi. Bu variantli tovarlar uchun ishlatiladi: ularning soni
+  /// `ProductProvider.receiveVariants` orqali allaqachon yangilanadi, shuning
+  /// uchun bu yerda qayta qo'shsak — ikki marta hisoblanib ketardi.
+  Future<bool> addStockIn(StockIn stockIn,
+      {int? sellPrice, bool updateStock = true}) async {
     try {
       final ref = _firestore.collection('stock_ins').doc();
-      await _firestore.runTransaction((txn) async {
-        final productRef =
-            _firestore.collection('products').doc(stockIn.productId);
-        final snap = await txn.get(productRef);
-        if (!snap.exists) {
-          throw Exception('Mahsulot topilmadi');
-        }
-        final currentQty = (snap.data()?['quantity'] ?? 0) as int;
-        txn.set(ref, stockIn.toFirestore());
-        txn.update(productRef, {
-          'quantity': currentQty + stockIn.quantity,
-          'buyPrice': stockIn.buyPrice,
-          if (sellPrice != null && sellPrice > 0) 'price': sellPrice,
+      if (!updateStock) {
+        await ref.set(stockIn.toFirestore());
+      } else {
+        await _firestore.runTransaction((txn) async {
+          final productRef =
+              _firestore.collection('products').doc(stockIn.productId);
+          final snap = await txn.get(productRef);
+          if (!snap.exists) {
+            throw Exception('Mahsulot topilmadi');
+          }
+          final currentQty = (snap.data()?['quantity'] ?? 0) as int;
+          txn.set(ref, stockIn.toFirestore());
+          txn.update(productRef, {
+            'quantity': currentQty + stockIn.quantity,
+            'buyPrice': stockIn.buyPrice,
+            if (sellPrice != null && sellPrice > 0) 'price': sellPrice,
+          });
         });
-      });
+      }
 
       _items.insert(0, StockIn(
         id: ref.id,

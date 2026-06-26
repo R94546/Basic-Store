@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/l10n/locale_provider.dart';
@@ -32,6 +33,12 @@ class _POSScreenState extends State<POSScreen> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
 
+  // ===== Shtrix-skaner (USB/Bluetooth — klaviatura emulyatsiyasi) =====
+  // Skaner kodni tez "yozadi" va Enter bilan tugatadi. Qidiruv maydoni
+  // fokusda bo'lmasa ham kodni ushlash uchun global klaviatura tinglovchisi.
+  final StringBuffer _scanBuffer = StringBuffer();
+  DateTime? _lastScanKeyAt;
+
   final List<_Chek> _cheks = [_Chek(label: 1)];
   int _activeIndex = 0;
   int _chekLabelCounter = 1;
@@ -56,6 +63,9 @@ class _POSScreenState extends State<POSScreen> {
   @override
   void initState() {
     super.initState();
+    // Global skaner ushlovchisi — faqat POS ekrani ochiq turganda faol
+    // (boshqa yo'lga o'tilganda dispose chaqiriladi va olib tashlanadi).
+    HardwareKeyboard.instance.addHandler(_onGlobalKey);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadProducts();
       context.read<CategoryProvider>().loadCategories();
@@ -67,9 +77,46 @@ class _POSScreenState extends State<POSScreen> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onGlobalKey);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  /// Shtrix-skaner klaviatura ko'rinishida kod yuboradi. Qidiruv maydoni
+  /// fokusda bo'lsa — TextField o'zi ishlaydi (onSubmitted). Aks holda
+  /// belgilarni buferga yig'ib, Enter kelganda mahsulotni qidiramiz.
+  bool _onGlobalKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    // Qidiruv maydoni yoki boshqa matn maydoni fokusda bo'lsa — aralashmaymiz
+    if (_searchFocusNode.hasFocus) return false;
+    final primary = FocusManager.instance.primaryFocus;
+    if (primary?.context?.widget is EditableText) return false;
+
+    final now = DateTime.now();
+    // Belgilar orasidagi tanaffus katta bo'lsa (odam yozyapti) — buferni tozalaymiz.
+    if (_lastScanKeyAt != null &&
+        now.difference(_lastScanKeyAt!).inMilliseconds > 250) {
+      _scanBuffer.clear();
+    }
+    _lastScanKeyAt = now;
+
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      final code = _scanBuffer.toString().trim();
+      _scanBuffer.clear();
+      if (code.length >= 3) {
+        _onSearchSubmit(code);
+        return true;
+      }
+      return false;
+    }
+
+    final ch = event.character;
+    if (ch != null && ch.length == 1 && ch.codeUnitAt(0) >= 0x20) {
+      _scanBuffer.write(ch);
+    }
+    return false;
   }
 
   LocaleProvider get _loc => context.read<LocaleProvider>();

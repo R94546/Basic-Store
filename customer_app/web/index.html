@@ -1,41 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Basic Store — onlayn do'kon">
+  <meta name="theme-color" content="#ffffff">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="customer_app">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Basic Store">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>Basic Store</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Telegram Mini App SDK (foydalanuvchi ma'lumoti, mavzu, MainButton) -->
+  <!-- Telegram Mini App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #ffffff; }
+    #app-loading {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #ffffff;
+      transition: opacity .35s ease;
+    }
+    #app-loading img { width: 190px; max-width: 60%; height: auto; }
+    #app-loading .spinner {
+      margin-top: 28px;
+      width: 30px; height: 30px;
+      border: 2.5px solid #e6e6e6;
+      border-top-color: #111;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
+  <!-- Yuklanish ekrani (Flutter birinchi kadrda olib tashlanadi) -->
+  <div id="app-loading">
+    <img src="logo.png" alt="Basic Store" />
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    (function () {
+      function hideLoader() {
+        var el = document.getElementById('app-loading');
+        if (el) { el.style.opacity = '0'; setTimeout(function(){ el && el.remove(); }, 400); }
+      }
+      window.addEventListener('flutter-first-frame', hideLoader);
+      // Zaxira: agar event kelmasa, 12s dan keyin yashir
+      setTimeout(hideLoader, 12000);
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

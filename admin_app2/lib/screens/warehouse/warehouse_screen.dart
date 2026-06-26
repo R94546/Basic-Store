@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -8,7 +9,7 @@ import '../../models/product.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../widgets/label_print_dialog.dart';
-import '../stockin/stockin_screen.dart';
+import '../../widgets/bind_barcode_dialog.dart';
 import 'add_product_screen.dart';
 
 class WarehouseScreen extends StatefulWidget {
@@ -41,6 +42,30 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
 
   void _openForm({Product? product}) {
     showProductFormDialog(context, product: product);
+  }
+
+  /// Sklad oynasida skanerlanганda: shtrix bazada bo'lsa — ro'yxat o'zi
+  /// filtrlaydi; noma'lum shtrix bo'lsa — "shtrixni tovarga biriktirish"
+  /// (yoki yangi tovar) dialogini ochamiz.
+  Future<void> _onScan(String value) async {
+    final code = value.trim();
+    if (code.isEmpty) return;
+    final pp = context.read<ProductProvider>();
+    if (pp.findByCode(code) != null) return; // allaqachon biriktirilgan
+    if (!RegExp(r'^\d{6,}$').hasMatch(code)) return; // oddiy matn qidiruv
+    final product = await showBindBarcodeDialog(context, code);
+    if (!mounted) return;
+    _searchController.clear();
+    setState(() => _search = '');
+    if (product != null) {
+      await pp.loadProducts();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.read<LocaleProvider>().t('bind.done')),
+          backgroundColor: AppTheme.accentGreen,
+        ));
+      }
+    }
   }
 
   List<Product> _applyFilters(List<Product> products) {
@@ -138,6 +163,7 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
             child: TextField(
               controller: _searchController,
               onChanged: (v) => setState(() => _search = v.trim()),
+              onSubmitted: _onScan,
               decoration: InputDecoration(
                 hintText: '${loc.t('common.search')}...',
                 prefixIcon: const Icon(Icons.search),
@@ -161,12 +187,9 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          // Prixod (tovar kelishi) — Sklad ichida (aniq ko'rinishi uchun to'ldirilgan)
+          // Prixod (tovar kelishi) — yangi bitta-oyna ekraniga o'tadi
           ElevatedButton.icon(
-            onPressed: () async {
-              await showStockInDialog(context);
-              if (mounted) context.read<ProductProvider>().loadProducts();
-            },
+            onPressed: () => context.go('/stockin'),
             icon: const Icon(Icons.add_box),
             label: Text(loc.t('nav.stockin')),
             style: ElevatedButton.styleFrom(

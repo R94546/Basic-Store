@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../screens/dashboard/dashboard_screen.dart';
 import '../../screens/warehouse/warehouse_screen.dart';
+import '../../screens/stockin/stockin_screen.dart';
 import '../../screens/pos/pos_screen.dart';
 import '../../screens/session/session_screen.dart';
 import '../../screens/clients/clients_screen.dart';
@@ -36,6 +37,12 @@ class AppRouter {
             path: '/warehouse',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: WarehouseScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/stockin',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: StockInScreen(),
             ),
           ),
           GoRoute(
@@ -113,6 +120,7 @@ class _MainShellState extends State<MainShell> {
   final List<String> _routes = [
     '/',
     '/warehouse',
+    '/stockin',
     '/pos',
     '/session',
     '/clients',

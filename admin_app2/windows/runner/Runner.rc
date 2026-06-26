@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.ayollar" "\0"
-            VALUE "FileDescription", "admin_app" "\0"
+            VALUE "CompanyName", "Basic Store" "\0"
+            VALUE "FileDescription", "Basic Store POS" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "admin_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.ayollar. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Basic Store. All rights reserved." "\0"
             VALUE "OriginalFilename", "admin_app.exe" "\0"
-            VALUE "ProductName", "admin_app" "\0"
+            VALUE "ProductName", "Basic Store POS" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

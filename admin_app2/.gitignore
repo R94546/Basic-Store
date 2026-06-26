@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Inno Setup installer chiqishi va katta binarlar (commit qilinmaydi)
+/installer/dist/
+/installer/redist/

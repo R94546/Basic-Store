@@ -48,3 +48,7 @@ pubspec.lock
 
 # Firebase
 .firebase/
+
+# Cloud Functions
+functions/node_modules/
+**/functions/node_modules/

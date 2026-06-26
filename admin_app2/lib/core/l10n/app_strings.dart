@@ -114,6 +114,33 @@ class AppStrings {
       'ru': 'Этикетка на каждую штуку (иначе — 1 шт.)'
     },
 
+    // ===== Prixod (bitta-oyna) =====
+    'prixod.scanHint': {
+      'uz': 'Skanerlang yoki nom/narx bo\'yicha qidiring ("Fut 200")',
+      'ru': 'Сканируйте или ищите по названию/цене ("Fut 200")'
+    },
+    'prixod.newProductBtn': {
+      'uz': 'Yangi tovar qo\'shish',
+      'ru': 'Добавить новый товар'
+    },
+    'prixod.receiveAndPrint': {
+      'uz': 'Qabul qilish va birka chop etish',
+      'ru': 'Принять и напечатать этикетку'
+    },
+    'prixod.received': {
+      'uz': 'Qabul qilindi',
+      'ru': 'Принято'
+    },
+    'prixod.session': {
+      'uz': 'Bu seans',
+      'ru': 'Эта сессия'
+    },
+    'prixod.sessionTotal': {
+      'uz': 'Seans jami',
+      'ru': 'Итого за сессию'
+    },
+    'common.pcs': {'uz': 'dona', 'ru': 'шт'},
+
     // ===== Etiketka / Asboblar =====
     'label.copies': {'uz': 'Nusxa', 'ru': 'Копии'},
     'form.barcodeAuto': {'uz': '(avtomatik)', 'ru': '(авто)'},

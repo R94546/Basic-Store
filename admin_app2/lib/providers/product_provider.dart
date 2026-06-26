@@ -301,6 +301,21 @@ class ProductProvider extends ChangeNotifier {
     return _byBarcode[c] ?? _byArticle[c];
   }
 
+  /// Nom + narx + artikul + shtrix + kategoriya bo'yicha qidiruv.
+  /// "Fut 200" kabi nom+narx so'rovini qo'llab-quvvatlaydi — har bir so'z
+  /// (token) topilishi shart. So'rov bo'sh bo'lsa — barcha tovarlar.
+  List<Product> searchProducts(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return _products;
+    final tokens = q.split(RegExp(r'\s+'));
+    return _products.where((p) {
+      final hay = '${p.name} ${p.price} ${p.barcode} '
+              '${BarcodeUtil.articleOf(p.barcode)} ${p.category}'
+          .toLowerCase();
+      return tokens.every((t) => hay.contains(t));
+    }).toList();
+  }
+
   /// Eski moslik uchun: faqat oddiy tovarlarni shtrix bo'yicha qaytaradi.
   Product? findByBarcode(String barcode) {
     final ref = _byBarcode[barcode.trim()];

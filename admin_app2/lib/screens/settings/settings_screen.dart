@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:printing/printing.dart';
 
@@ -602,6 +603,8 @@ class _PrinterSettingsDialogState extends State<_PrinterSettingsDialog> {
                         onChanged: (v) => provider.setAutoPrintLabel(v),
                         activeColor: AppTheme.accentOrange,
                       ),
+                      const Divider(),
+                      const _LabelSizeEditor(),
                     ],
                   );
                 },
@@ -929,6 +932,87 @@ class _TelegramSettingsDialogState extends State<_TelegramSettingsDialog> {
           ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Yorliq (birka) o'lchamini sozlash — mm da kenglik × balandlik.
+class _LabelSizeEditor extends StatefulWidget {
+  const _LabelSizeEditor();
+
+  @override
+  State<_LabelSizeEditor> createState() => _LabelSizeEditorState();
+}
+
+class _LabelSizeEditorState extends State<_LabelSizeEditor> {
+  late final TextEditingController _w;
+  late final TextEditingController _h;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = context.read<PrinterProvider>();
+    _w = TextEditingController(text: p.labelWidthMm.toString());
+    _h = TextEditingController(text: p.labelHeightMm.toString());
+  }
+
+  @override
+  void dispose() {
+    _w.dispose();
+    _h.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final w = int.tryParse(_w.text) ?? 40;
+    final h = int.tryParse(_h.text) ?? 30;
+    context.read<PrinterProvider>().setLabelSize(w, h);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              loc.t('printer.labelSize'),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+            ),
+          ),
+          SizedBox(
+            width: 60,
+            child: TextField(
+              controller: _w,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                  isDense: true, suffixText: 'mm'),
+              onChanged: (_) => _save(),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Text('×'),
+          ),
+          SizedBox(
+            width: 60,
+            child: TextField(
+              controller: _h,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                  isDense: true, suffixText: 'mm'),
+              onChanged: (_) => _save(),
+            ),
+          ),
+        ],
       ),
     );
   }

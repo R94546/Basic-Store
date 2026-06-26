@@ -310,6 +310,10 @@ class AppStrings {
       'uz': 'Yorliqni avtomatik chop etish',
       'ru': 'Автопечать этикетки'
     },
+    'printer.labelSize': {
+      'uz': 'Birka o\'lchami',
+      'ru': 'Размер этикетки'
+    },
     'printer.autoLabelDesc': {
       'uz': "Yangi mahsulot qo'shganda",
       'ru': 'При добавлении нового товара'

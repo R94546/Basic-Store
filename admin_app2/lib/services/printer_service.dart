@@ -37,7 +37,10 @@ class PrinterService {
   }
 
   /// ========== BARCODE LABEL CHOP ETISH ==========
-  /// Mahsulot yorlig'i (40x30mm yoki shunga o'xshash)
+  /// Mahsulot yorlig'i. [widthMm]/[heightMm] — yorliq (birka) o'lchami;
+  /// sahifa AYNAN shu o'lchamda yasaladi, shunda printer kichraytirib
+  /// (scaling) xira qilmaydi. MUHIM: Windows printer drayverida ham qog'oz
+  /// o'lchami shu birkaga (mas. 40×30mm) qo'yilgan bo'lishi shart.
   Future<bool> printProductLabel({
     required String productName,
     required String barcode,
@@ -46,6 +49,8 @@ class PrinterService {
     String? color,
     String? article,
     int copies = 1,
+    int widthMm = 40,
+    int heightMm = 30,
   }) async {
     if (_selectedPrinter == null) {
       debugPrint('No printer selected');
@@ -57,74 +62,83 @@ class PrinterService {
         ? article
         : BarcodeUtil.articleOf(barcode);
 
+    // Shtrix turini ma'lumotga qarab tanlaymiz: ichki/EAN kodlar EAN-13,
+    // boshqa (zavod) kodlar — Code128 (har qanday belgini qabul qiladi).
+    final digits = barcode.replaceAll(RegExp(r'[^0-9]'), '');
+    final bool useEan13 = digits.length == 12 || digits.length == 13;
+    final pw.Barcode barcodeType =
+        useEan13 ? pw.Barcode.ean13() : pw.Barcode.code128();
+    final String barcodeData =
+        useEan13 ? digits.substring(0, 12) : barcode.trim();
+
     try {
       final pdf = pw.Document();
 
-      // Label o'lchami: 50mm x 30mm (kichik yorliq)
-      const labelWidth = 50.0 * PdfPageFormat.mm;
-      const labelHeight = 30.0 * PdfPageFormat.mm;
+      const mm = PdfPageFormat.mm;
+      final pageW = widthMm * mm;
+      final pageH = heightMm * mm;
+      final margin = 1.5 * mm;
+      final innerW = pageW - margin * 2;
+      // Shtrix balandligi — yorliq balandligining ~45%, lekin 14mm dan oshmasin
+      final barcodeH = (heightMm * 0.45).clamp(8.0, 14.0) * mm;
+
+      final sub = [size, color]
+          .where((e) => e != null && e.trim().isNotEmpty)
+          .join(' • ');
 
       for (int i = 0; i < copies; i++) {
         pdf.addPage(
           pw.Page(
-            pageFormat: const PdfPageFormat(labelWidth, labelHeight, marginAll: 2 * PdfPageFormat.mm),
+            pageFormat: PdfPageFormat(pageW, pageH, marginAll: margin),
             build: (context) {
               return pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  // Mahsulot nomi + artikul (skaner ishlamasa qo'lda terish uchun)
+                  // Nom + artikul (bitta qator)
                   pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Expanded(
                         child: pw.Text(
                           productName,
                           style: pw.TextStyle(
-                            fontSize: 8,
+                            fontSize: 7,
                             fontWeight: pw.FontWeight.bold,
                           ),
                           maxLines: 1,
+                          overflow: pw.TextOverflow.clip,
                         ),
                       ),
                       if (art.isNotEmpty)
                         pw.Text(
-                          'Art:$art',
+                          art,
                           style: pw.TextStyle(
-                            fontSize: 9,
+                            fontSize: 8,
                             fontWeight: pw.FontWeight.bold,
                           ),
                         ),
                     ],
                   ),
-                  pw.SizedBox(height: 2),
-                  // Razmer va rang
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
-                    children: [
-                      pw.Text('$size', style: const pw.TextStyle(fontSize: 7)),
-                      if (color != null) ...[
-                        pw.Text(' | ', style: const pw.TextStyle(fontSize: 7)),
-                        pw.Text(color, style: const pw.TextStyle(fontSize: 7)),
-                      ],
-                    ],
+                  if (sub.isNotEmpty)
+                    pw.Text(sub, style: const pw.TextStyle(fontSize: 6)),
+                  // Shtrix kod — katta va markazda
+                  pw.Center(
+                    child: pw.BarcodeWidget(
+                      barcode: barcodeType,
+                      data: barcodeData,
+                      width: innerW,
+                      height: barcodeH,
+                      drawText: true,
+                      textStyle: const pw.TextStyle(fontSize: 7),
+                    ),
                   ),
-                  pw.SizedBox(height: 3),
-                  // Shtrix kod
-                  pw.BarcodeWidget(
-                    barcode: pw.Barcode.ean13(),
-                    data: _padBarcode(barcode),
-                    width: 40 * PdfPageFormat.mm,
-                    height: 10 * PdfPageFormat.mm,
-                    drawText: true,
-                    textStyle: const pw.TextStyle(fontSize: 6),
-                  ),
-                  pw.SizedBox(height: 2),
                   // Narx
                   pw.Text(
                     '$price so\'m',
+                    textAlign: pw.TextAlign.center,
                     style: pw.TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
@@ -136,10 +150,11 @@ class PrinterService {
       }
 
       final bytes = await pdf.save();
-      
+
       await Printing.directPrintPdf(
         printer: _selectedPrinter!,
         onLayout: (_) => bytes,
+        usePrinterSettings: true,
       );
 
       return true;

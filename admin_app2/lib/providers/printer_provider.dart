@@ -14,6 +14,8 @@ class PrinterProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _autoPrintReceipt = true;
   bool _autoPrintLabel = false;
+  int _labelWidthMm = 40;
+  int _labelHeightMm = 30;
 
   List<Printer> get availablePrinters => _availablePrinters;
   Printer? get selectedPrinter => _selectedPrinter;
@@ -21,6 +23,8 @@ class PrinterProvider extends ChangeNotifier {
   bool get isConfigured => _selectedPrinter != null;
   bool get autoPrintReceipt => _autoPrintReceipt;
   bool get autoPrintLabel => _autoPrintLabel;
+  int get labelWidthMm => _labelWidthMm;
+  int get labelHeightMm => _labelHeightMm;
   PrinterService get service => _printerService;
 
   /// Mavjud printerlarni skanerlash
@@ -56,7 +60,9 @@ class PrinterProvider extends ChangeNotifier {
         final data = doc.data()!;
         _autoPrintReceipt = data['autoPrintReceipt'] ?? true;
         _autoPrintLabel = data['autoPrintLabel'] ?? false;
-        
+        _labelWidthMm = (data['labelWidthMm'] ?? 40) as int;
+        _labelHeightMm = (data['labelHeightMm'] ?? 30) as int;
+
         final savedPrinterName = data['printerName'] as String?;
         if (savedPrinterName != null) {
           await scanPrinters();
@@ -84,6 +90,8 @@ class PrinterProvider extends ChangeNotifier {
         'printerName': _selectedPrinter?.name,
         'autoPrintReceipt': _autoPrintReceipt,
         'autoPrintLabel': _autoPrintLabel,
+        'labelWidthMm': _labelWidthMm,
+        'labelHeightMm': _labelHeightMm,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -100,6 +108,14 @@ class PrinterProvider extends ChangeNotifier {
 
   Future<void> setAutoPrintLabel(bool value) async {
     _autoPrintLabel = value;
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// Yorliq (birka) o'lchamini saqlash (mm)
+  Future<void> setLabelSize(int widthMm, int heightMm) async {
+    _labelWidthMm = widthMm.clamp(20, 100);
+    _labelHeightMm = heightMm.clamp(15, 100);
     await _saveSettings();
     notifyListeners();
   }
@@ -155,6 +171,8 @@ class PrinterProvider extends ChangeNotifier {
       color: color,
       article: article,
       copies: copies,
+      widthMm: _labelWidthMm,
+      heightMm: _labelHeightMm,
     );
   }
 

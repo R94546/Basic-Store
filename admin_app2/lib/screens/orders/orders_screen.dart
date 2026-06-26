@@ -1,10 +1,8 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -378,9 +376,10 @@ class _OrderCard extends StatelessWidget {
             ),
           if (order.customerLat != null && order.customerLng != null)
             InkWell(
-              onTap: () => html.window.open(
-                'https://www.google.com/maps?q=${order.customerLat},${order.customerLng}',
-                '_blank',
+              onTap: () => launchUrl(
+                Uri.parse(
+                    'https://www.google.com/maps?q=${order.customerLat},${order.customerLng}'),
+                mode: LaunchMode.externalApplication,
               ),
               borderRadius: BorderRadius.circular(8),
               child: Padding(

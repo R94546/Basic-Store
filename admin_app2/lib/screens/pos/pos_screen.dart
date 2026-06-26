@@ -210,14 +210,33 @@ class _POSScreenState extends State<POSScreen> {
       } else {
         _addToCart(hit.product);
       }
+    } else if (RegExp(r'^\d{6,}$').hasMatch(code)) {
+      // Shtrixsimon kod topilmadi — mahsulotga biriktirishni taklif qilamiz
+      // (ishlab chiqaruvchi shtrixini SKU'ga bog'lash, printersiz).
+      _searchController.clear();
+      setState(() {});
+      await _showBindBarcodeDialog(code);
+      _searchFocusNode.requestFocus();
+      return;
     } else if (code.length >= 8) {
-      // Faqat shtrixsimon uzun kod topilmasa ogohlantiramiz; qisqa matn yozsa
+      // Boshqa uzun matn topilmasa ogohlantiramiz; qisqa matn yozsa
       // ro'yxat filtri o'zi ishlaydi.
       _toast(_loc.t('common.notFound'), AppTheme.accentRed);
     }
     _searchController.clear();
     setState(() {});
     _searchFocusNode.requestFocus();
+  }
+
+  /// Topilmagan shtrixni mavjud mahsulotga biriktirish dialogi.
+  Future<void> _showBindBarcodeDialog(String code) async {
+    final result = await showDialog<({Product product, ProductVariant? variant})>(
+      context: context,
+      builder: (_) => _BindBarcodeDialog(barcode: code),
+    );
+    if (result == null || !mounted) return;
+    _addToCart(result.product, variant: result.variant);
+    _toast(_loc.t('bind.done'), AppTheme.accentGreen);
   }
 
   void _toast(String msg, Color color) {
@@ -682,6 +701,183 @@ class _POSScreenState extends State<POSScreen> {
 }
 
 // ===== Variant tanlash dialogi =====
+/// Skanerlanган, ammo bazada topilmagan shtrixni mavjud mahsulot/variantга
+/// biriktirish dialogi. Tovarda ishlab chiqaruvchi shtrixi bo'lsa — uni
+/// SKU'ga bog'laymiz, keyin POS'da to'g'ridan-to'g'ri skanerlanadi (printersiz).
+class _BindBarcodeDialog extends StatefulWidget {
+  final String barcode;
+  const _BindBarcodeDialog({required this.barcode});
+
+  @override
+  State<_BindBarcodeDialog> createState() => _BindBarcodeDialogState();
+}
+
+class _BindBarcodeDialogState extends State<_BindBarcodeDialog> {
+  final _searchCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pick(Product product) async {
+    final pp = context.read<ProductProvider>();
+    final loc = context.read<LocaleProvider>();
+
+    ProductVariant? variant;
+    if (product.hasVariants) {
+      var variants = pp.cachedVariants(product.id!);
+      if (variants.isEmpty) variants = await pp.getVariants(product.id!);
+      if (!mounted) return;
+      variant = await showDialog<ProductVariant>(
+        context: context,
+        builder: (_) => _VariantPickerDialog(product: product, variants: variants),
+      );
+      if (variant == null) return; // bekor qilindi
+    }
+
+    setState(() => _saving = true);
+    try {
+      if (variant != null) {
+        await pp.assignBarcodeToVariant(product.id!, variant.id!, widget.barcode);
+      } else {
+        await pp.assignBarcodeToProduct(product.id!, widget.barcode);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${loc.t('common.error')}: $e'),
+        backgroundColor: AppTheme.accentRed,
+      ));
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, (product: product, variant: variant));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+    final pp = context.watch<ProductProvider>();
+    final q = _searchCtrl.text.toLowerCase();
+    var products = pp.products;
+    if (q.isNotEmpty) {
+      products = products
+          .where((p) =>
+              p.name.toLowerCase().contains(q) ||
+              p.barcode.contains(q) ||
+              BarcodeUtil.articleOf(p.barcode).contains(q))
+          .toList();
+    }
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: GlassCard(
+        blur: 20,
+        opacity: 0.95,
+        padding: const EdgeInsets.all(20),
+        child: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.qr_code_scanner, color: AppTheme.accentOrange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      loc.t('bind.title'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentOrange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.barcode_reader, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.barcode,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                loc.t('bind.hint'),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: loc.t('pos.searchHint'),
+                  prefixIcon: const Icon(Icons.search),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 320,
+                child: _saving
+                    ? const Center(child: CircularProgressIndicator())
+                    : products.isEmpty
+                        ? Center(
+                            child: Text(loc.t('common.notFound'),
+                                style: const TextStyle(
+                                    color: AppTheme.textSecondary)))
+                        : ListView.builder(
+                            itemCount: products.length,
+                            itemBuilder: (context, i) {
+                              final p = products[i];
+                              final art = BarcodeUtil.articleOf(p.barcode);
+                              return ListTile(
+                                leading: const Icon(Icons.checkroom),
+                                title: Text(p.name),
+                                subtitle: Text(p.hasVariants
+                                    ? loc.t('bind.hasVariants')
+                                    : (art.isNotEmpty ? 'Art: $art' : '')),
+                                trailing: const Icon(Icons.link,
+                                    color: AppTheme.accentOrange),
+                                onTap: () => _pick(p),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _VariantPickerDialog extends StatelessWidget {
   final Product product;
   final List<ProductVariant> variants;

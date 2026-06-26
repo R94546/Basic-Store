@@ -318,6 +318,30 @@ class ProductProvider extends ChangeNotifier {
     return null;
   }
 
+  /// Shtrix allaqachon biror SKU'ga band emasligini bildiradi.
+  bool isBarcodeTaken(String code) => _byBarcode.containsKey(code.trim());
+
+  /// Oddiy (variantsiz) tovarga tashqi (ishlab chiqaruvchi) shtrixni biriktiradi.
+  Future<void> assignBarcodeToProduct(String productId, String barcode) async {
+    await _firestore
+        .collection('products')
+        .doc(productId)
+        .update({'barcode': barcode.trim()});
+    await loadProducts();
+  }
+
+  /// Variantga tashqi (ishlab chiqaruvchi) shtrixni biriktiradi.
+  Future<void> assignBarcodeToVariant(
+      String productId, String variantId, String barcode) async {
+    await _firestore
+        .collection('products')
+        .doc(productId)
+        .collection('variants')
+        .doc(variantId)
+        .update({'barcode': barcode.trim()});
+    await loadProducts();
+  }
+
   /// Bo'sh yoki takroriy shtrixlarni yangi unikal ichki shtrixlar bilan
   /// to'g'rilaydi. Natija: nechta SKU yangilandi.
   Future<int> normalizeBarcodes() async {

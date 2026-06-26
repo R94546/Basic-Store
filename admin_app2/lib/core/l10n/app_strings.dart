@@ -181,6 +181,24 @@ class AppStrings {
       'ru': 'Открыть на карте'
     },
 
+    // ===== Shtrix biriktirish (skanerlab) =====
+    'bind.title': {
+      'uz': 'Shtrixni mahsulotga biriktirish',
+      'ru': 'Привязать штрих-код к товару'
+    },
+    'bind.hint': {
+      'uz': 'Bu shtrix bazada yo\'q. Qaysi mahsulotga biriktiramiz?',
+      'ru': 'Этого штрих-кода нет в базе. К какому товару привязать?'
+    },
+    'bind.hasVariants': {
+      'uz': 'Variantli — keyin o\'lcham/rang tanlanadi',
+      'ru': 'С вариантами — далее выбор размера/цвета'
+    },
+    'bind.done': {
+      'uz': 'Shtrix biriktirildi va savatga qo\'shildi',
+      'ru': 'Штрих-код привязан и добавлен в корзину'
+    },
+
     // ===== Buyurtmalar (mijoz buyurtmalari) =====
     'ordersAdmin.new': {'uz': 'Yangi', 'ru': 'Новые'},
     'ordersAdmin.active': {'uz': 'Faol', 'ru': 'Активные'},

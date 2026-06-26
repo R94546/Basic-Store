@@ -161,18 +161,17 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          // Prixod (tovar kelishi) — Sklad ichida
-          OutlinedButton.icon(
+          // Prixod (tovar kelishi) — Sklad ichida (aniq ko'rinishi uchun to'ldirilgan)
+          ElevatedButton.icon(
             onPressed: () async {
               await showStockInDialog(context);
               if (mounted) context.read<ProductProvider>().loadProducts();
             },
-            icon: const Icon(Icons.add_box_outlined),
+            icon: const Icon(Icons.add_box),
             label: Text(loc.t('nav.stockin')),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.accentGreen,
-              side: BorderSide(
-                  color: AppTheme.accentGreen.withValues(alpha: 0.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentGreen,
+              foregroundColor: Colors.white,
             ),
           ),
           const SizedBox(width: 12),

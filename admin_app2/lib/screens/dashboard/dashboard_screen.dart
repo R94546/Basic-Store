@@ -39,7 +39,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int profit = 0;
     for (final sale in todaySales) {
       for (final item in sale.items) {
-        final cost = byId[item.productId]?.buyPrice ?? 0;
+        final cost = item.buyPrice > 0
+            ? item.buyPrice
+            : (byId[item.productId]?.buyPrice ?? 0);
         profit += (item.unitPrice - cost) * item.quantity;
       }
     }

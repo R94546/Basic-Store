@@ -106,7 +106,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             }
             for (final item in sale.items) {
               final product = byId[item.productId];
-              final cost = product?.buyPrice ?? 0;
+              // Sotuv paytidagi tannarx (snapshot); eski yozuvlarda 0 bo'lsa
+              // joriy mahsulot tannarxiga qaytamiz.
+              final cost =
+                  item.buyPrice > 0 ? item.buyPrice : (product?.buyPrice ?? 0);
               profit += (item.unitPrice - cost) * item.quantity;
               final cat = (product?.category.isNotEmpty ?? false)
                   ? product!.category

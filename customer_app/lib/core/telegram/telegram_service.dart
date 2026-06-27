@@ -12,6 +12,9 @@ class TelegramService {
   /// Ilova Telegram ichida ochilganmi
   static bool get isInTelegram => impl.isInTelegram();
 
+  /// Telegram'dan kelgan xom initData satri (serverda HMAC tekshiriladi).
+  static String? get rawInitData => impl.getRawInitData();
+
   /// Telegram'ga ilova tayyor ekanini bildirish + to'liq ekran
   static void init() {
     impl.ready();

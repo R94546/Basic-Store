@@ -97,6 +97,7 @@ class SaleItem {
   final int quantity;
   final int unitPrice;      // Birlik narxi (skidka bilan)
   final int originalPrice;  // Asl narx
+  final int buyPrice;       // Sotuv paytidagi tan (kelish) narxi — foyda uchun
   final int? discount;      // Chegirma foizi
   final String? size;
   final String? color;
@@ -108,6 +109,7 @@ class SaleItem {
     required this.quantity,
     required this.unitPrice,
     required this.originalPrice,
+    this.buyPrice = 0,
     this.discount,
     this.size,
     this.color,
@@ -124,6 +126,7 @@ class SaleItem {
       quantity: map['quantity'] ?? 1,
       unitPrice: map['unitPrice'] ?? 0,
       originalPrice: map['originalPrice'] ?? 0,
+      buyPrice: map['buyPrice'] ?? 0,
       discount: map['discount'],
       size: map['size'],
       color: map['color'],
@@ -138,6 +141,7 @@ class SaleItem {
       'quantity': quantity,
       'unitPrice': unitPrice,
       'originalPrice': originalPrice,
+      'buyPrice': buyPrice,
       if (discount != null) 'discount': discount,
       if (size != null) 'size': size,
       if (color != null) 'color': color,

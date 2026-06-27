@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
@@ -19,11 +20,27 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // Anonim auth — buyurtmalar egasiga bog'lanadi (xavfsizlik: faqat o'z
-  // buyurtmalarini o'qiy oladi). Xato bo'lsa ham ilova ishlayveradi.
+  // Auth — buyurtmalar egasiga bog'lanadi (xavfsizlik: faqat o'z buyurtmalarini
+  // o'qiy oladi). Telegram ichida bo'lsa — initData serverda HMAC bilan
+  // tekshirilib, ISHONCHLI uid (tg_<id>) beriladi; aks holda anonim.
+  // Har qanday xatoda anonimga qaytadi — buyurtma berish hech qachon to'xtamaydi.
   try {
     if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
+      final initData = TelegramService.rawInitData;
+      if (initData != null) {
+        try {
+          final res = await FirebaseFunctions.instance
+              .httpsCallable('telegramAuth')
+              .call({'initData': initData});
+          final token = (res.data as Map)['token'] as String?;
+          if (token != null) {
+            await FirebaseAuth.instance.signInWithCustomToken(token);
+          }
+        } catch (_) {}
+      }
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
     }
   } catch (_) {}
   // Telegram Mini App'ga tayyor ekanini bildirish (Telegram'dan tashqarida no-op)

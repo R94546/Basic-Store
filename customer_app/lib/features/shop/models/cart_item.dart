@@ -6,6 +6,7 @@ class CartItem {
   final String? imageUrl;
   final String? size;
   final String? color;
+  final int maxStock; // mavjud qoldiq (savatda oshib ketmaslik uchun)
   int quantity;
 
   CartItem({
@@ -15,6 +16,7 @@ class CartItem {
     this.imageUrl,
     this.size,
     this.color,
+    this.maxStock = 999999,
     this.quantity = 1,
   });
 
@@ -57,6 +59,7 @@ class CartItem {
     String? imageUrl,
     String? size,
     String? color,
+    int? maxStock,
     int? quantity,
   }) {
     return CartItem(
@@ -66,6 +69,7 @@ class CartItem {
       imageUrl: imageUrl ?? this.imageUrl,
       size: size ?? this.size,
       color: color ?? this.color,
+      maxStock: maxStock ?? this.maxStock,
       quantity: quantity ?? this.quantity,
     );
   }

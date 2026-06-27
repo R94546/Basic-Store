@@ -26,18 +26,16 @@ class CartProvider extends ChangeNotifier {
   /// Total including delivery
   int get total => subtotal + deliveryFee;
 
-  /// Add item to cart
+  /// Add item to cart (qoldiqdan oshmaydi)
   void addItem(CartItem item) {
     final key = item.cartKey;
-    
+    final max = item.maxStock;
     if (_items.containsKey(key)) {
-      // Increase quantity if already in cart
-      _items[key]!.quantity += item.quantity;
+      final next = _items[key]!.quantity + item.quantity;
+      _items[key]!.quantity = next > max ? max : next;
     } else {
-      // Add new item
-      _items[key] = item;
+      _items[key] = item..quantity = item.quantity > max ? max : item.quantity;
     }
-    
     notifyListeners();
   }
 
@@ -59,21 +57,23 @@ class CartProvider extends ChangeNotifier {
     }
   }
 
-  /// Increase item quantity by 1
+  /// Increase item quantity by 1 (qoldiqdan oshmaydi)
   void increaseQuantity(String cartKey) {
-    if (_items.containsKey(cartKey)) {
-      _items[cartKey]!.quantity++;
+    final item = _items[cartKey];
+    if (item != null && item.quantity < item.maxStock) {
+      item.quantity++;
       notifyListeners();
     }
   }
 
-  /// Update item quantity directly
+  /// Update item quantity directly (qoldiqdan oshmaydi)
   void updateQuantity(String cartKey, int quantity) {
-    if (_items.containsKey(cartKey)) {
+    final item = _items[cartKey];
+    if (item != null) {
       if (quantity <= 0) {
         _items.remove(cartKey);
       } else {
-        _items[cartKey]!.quantity = quantity;
+        item.quantity = quantity > item.maxStock ? item.maxStock : quantity;
       }
       notifyListeners();
     }

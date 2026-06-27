@@ -292,6 +292,7 @@ class _POSScreenState extends State<POSScreen> {
             quantity: i.quantity,
             unitPrice: _discounted(i.unitBase, i.product.discount),
             originalPrice: i.unitBase,
+            buyPrice: i.product.buyPrice, // foyda uchun sotuv paytidagi tannarx
             discount: i.product.discount,
             size: i.size,
             color: i.color,

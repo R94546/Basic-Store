@@ -2,10 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Faqat admin (do'kon egasi)
+    // Admin (do'kon egasi yoki xodimlari). Custom claim `admin:true` yoki
+    // birlamchi egasi uid (zaxira — claim ishlamasa ham kira oladi).
     function isAdmin() {
-      return request.auth != null
-        && request.auth.uid == 'sG47ERuLIdSFeWI84ErNYy2y2b02';
+      return request.auth != null && (
+        request.auth.token.admin == true
+        || request.auth.uid == 'sG47ERuLIdSFeWI84ErNYy2y2b02'
+      );
     }
 
     // Mahsulotlar — hamma o'qiydi (mijoz katalogi), faqat admin yozadi

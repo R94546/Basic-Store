@@ -138,6 +138,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       imageUrl: _p.images.isNotEmpty ? _p.images.first : null,
       size: _selectedSize,
       color: _selectedColor,
+      maxStock: _stock,
       quantity: 1,
     ));
     _toast(loc.t('product.added'));

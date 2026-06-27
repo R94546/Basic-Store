@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/activity_log.dart';
@@ -91,66 +92,86 @@ class OrderProvider extends ChangeNotifier {
   Future<void> _recordSaleFromOrder(String orderId) async {
     try {
       final ref = _firestore.collection('orders').doc(orderId);
-      final doc = await ref.get();
-      final data = doc.data();
-      if (data == null) return;
-      if (data['saleRecorded'] == true) return; // allaqachon yozilgan
+      final saleRef = _firestore.collection('sales').doc();
+      CustomerOrder? order;
 
-      final order = CustomerOrder.fromFirestore(doc);
-      final saleItems = order.items
-          .map((it) => {
-                'productId': it.productId,
-                'productName': it.name,
-                'quantity': it.quantity,
-                'unitPrice': it.price,
-                'originalPrice': it.price,
-                if (it.size != null) 'size': it.size,
-                if (it.color != null) 'color': it.color,
-              })
-          .toList();
-
-      await _firestore.collection('sales').add({
-        'createdAt': FieldValue.serverTimestamp(),
-        'totalAmount': order.total,
-        'originalAmount': order.subtotal,
-        'discountAmount': 0,
-        'items': saleItems,
-        'paymentMethod': 'cash',
-        'amountPaid': order.total,
-        'changeAmount': 0,
-        'payments': {'cash': order.total},
-        'customerName': order.customerName,
-        'cashierName': 'Online',
-        'orderId': orderId,
-        'source': 'online',
+      // Sotuv yozuvi + saleRecorded bayrog'i BITTA transaksiyada —
+      // takroriy "delivered" hodisalari ikki marta yozmasin.
+      final recorded = await _firestore.runTransaction<bool>((txn) async {
+        final doc = await txn.get(ref);
+        final data = doc.data();
+        if (data == null || data['saleRecorded'] == true) return false;
+        order = CustomerOrder.fromFirestore(doc);
+        final saleItems = order!.items
+            .map((it) => {
+                  'productId': it.productId,
+                  'productName': it.name,
+                  'quantity': it.quantity,
+                  'unitPrice': it.price,
+                  'originalPrice': it.price,
+                  if (it.size != null) 'size': it.size,
+                  if (it.color != null) 'color': it.color,
+                })
+            .toList();
+        txn.set(saleRef, {
+          'createdAt': FieldValue.serverTimestamp(),
+          'totalAmount': order!.total,
+          'originalAmount': order!.subtotal,
+          'discountAmount': 0,
+          'items': saleItems,
+          'paymentMethod': 'cash',
+          'amountPaid': order!.total,
+          'changeAmount': 0,
+          'payments': {'cash': order!.total},
+          'customerName': order!.customerName,
+          'cashierName': 'Online',
+          'orderId': orderId,
+          'source': 'online',
+        });
+        txn.update(ref, {'saleRecorded': true});
+        return true;
       });
 
-      // Qoldiqni kamaytirish (eng yaxshi imkon — productId bo'yicha)
-      for (final it in order.items) {
+      if (!recorded || order == null) return;
+
+      // Qoldiqni kamaytirish (mahsulot + mos variant size/color bo'yicha)
+      for (final it in order!.items) {
         if (it.productId.isEmpty) continue;
         try {
-          await _firestore
-              .collection('products')
-              .doc(it.productId)
-              .update({'quantity': FieldValue.increment(-it.quantity)});
+          final pref = _firestore.collection('products').doc(it.productId);
+          await pref.update({'quantity': FieldValue.increment(-it.quantity)});
+          if (it.size != null || it.color != null) {
+            final vsnap = await pref.collection('variants').get();
+            for (final vd in vsnap.docs) {
+              final v = vd.data();
+              if ((it.size == null || v['size'] == it.size) &&
+                  (it.color == null || v['color'] == it.color)) {
+                await vd.reference
+                    .update({'quantity': FieldValue.increment(-it.quantity)});
+                break;
+              }
+            }
+          }
         } catch (_) {}
       }
 
-      await ref.update({'saleRecorded': true});
       ActivityLog.record(
         action: 'SALE_CONFIRM',
         entity: 'Sale',
         entityId: orderId,
-        details: 'Online · ${order.total} so\'m',
+        details: 'Online · ${order!.total} so\'m',
       );
     } catch (e) {
       debugPrint('recordSaleFromOrder error: $e');
     }
   }
 
-  /// Listen to orders in real-time
+  StreamSubscription<QuerySnapshot>? _ordersSub;
+
+  /// Listen to orders in real-time (idempotent — bir marta obuna bo'ladi).
   void listenToOrders() {
-    _firestore
+    if (_ordersSub != null) return;
+    _ordersSub = _firestore
         .collection('orders')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -158,6 +179,12 @@ class OrderProvider extends ChangeNotifier {
       _orders = snapshot.docs.map((doc) => CustomerOrder.fromFirestore(doc)).toList();
       notifyListeners();
     });
+  }
+
+  @override
+  void dispose() {
+    _ordersSub?.cancel();
+    super.dispose();
   }
 
   /// Get today's orders count

@@ -14,6 +14,7 @@ extension type _WebApp(JSObject _) implements JSObject {
   external void expand();
   external void disableVerticalSwipes();
   external _InitData? get initDataUnsafe;
+  external String? get initData; // serverda HMAC tekshirish uchun xom satr
 }
 
 extension type _InitData(JSObject _) implements JSObject {
@@ -59,6 +60,16 @@ TgUser? getTelegramUser() {
       photoUrl: u.photo_url,
       languageCode: u.language_code,
     );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Telegram'dan kelgan xom `initData` satri (serverda HMAC tekshiriladi).
+String? getRawInitData() {
+  try {
+    final d = _webApp?.initData;
+    return (d == null || d.isEmpty) ? null : d;
   } catch (_) {
     return null;
   }

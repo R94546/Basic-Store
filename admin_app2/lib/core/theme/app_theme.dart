@@ -205,6 +205,7 @@ class GlassSidebar extends StatelessWidget {
     (Icons.discount_rounded, 'nav.discount'),
     (Icons.history_rounded, 'nav.sales'),
     (Icons.analytics_rounded, 'nav.reports'),
+    (Icons.history_edu_rounded, 'nav.logs'),
     (Icons.category_rounded, 'nav.categories'),
   ];
 

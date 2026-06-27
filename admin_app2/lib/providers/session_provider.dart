@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/activity_log.dart';
 import '../models/cash_session.dart';
 
 /// Smena davomidagi to'lov turlari bo'yicha yig'indi.
@@ -85,6 +86,11 @@ class SessionProvider extends ChangeNotifier {
         cashierName: cashierName,
       );
       notifyListeners();
+      ActivityLog.record(
+          action: 'OPEN_SESSION',
+          entity: 'CashSession',
+          entityId: ref.id,
+          details: 'Boshlang\'ich: $openingCash');
       return true;
     } catch (e) {
       debugPrint('Error opening session: $e');
@@ -114,6 +120,11 @@ class SessionProvider extends ChangeNotifier {
         movements: updated,
       );
       notifyListeners();
+      ActivityLog.record(
+          action: type == 'in' ? 'CASH_IN' : 'CASH_OUT',
+          entity: 'CashSession',
+          entityId: _current!.id,
+          details: '$amount · $reason');
       return true;
     } catch (e) {
       debugPrint('Error adding movement: $e');
@@ -211,8 +222,14 @@ class SessionProvider extends ChangeNotifier {
         cashierName: _current!.cashierName,
         movements: _current!.movements,
       );
+      final sessionId = closed.id;
       _current = null;
       notifyListeners();
+      ActivityLog.record(
+          action: 'CLOSE_SESSION',
+          entity: 'CashSession',
+          entityId: sessionId,
+          details: 'Farq: $difference');
       return closed;
     } catch (e) {
       debugPrint('Error closing session: $e');

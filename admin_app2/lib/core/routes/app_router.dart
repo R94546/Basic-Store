@@ -12,6 +12,7 @@ import '../../screens/discount/discount_screen.dart';
 import '../../screens/sales/sales_history_screen.dart';
 import '../../screens/category/category_screen.dart';
 import '../../screens/analytics/analytics_screen.dart';
+import '../../screens/logs/logs_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../theme/app_theme.dart';
 
@@ -88,6 +89,12 @@ class AppRouter {
             ),
           ),
           GoRoute(
+            path: '/logs',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: LogsScreen(),
+            ),
+          ),
+          GoRoute(
             path: '/categories',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: CategoryScreen(),
@@ -128,6 +135,7 @@ class _MainShellState extends State<MainShell> {
     '/discount',
     '/sales',
     '/analytics',
+    '/logs',
     '/categories',
     '/settings',
   ];

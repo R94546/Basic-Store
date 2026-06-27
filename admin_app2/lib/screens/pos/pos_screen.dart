@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/activity_log.dart';
 import '../../models/client.dart';
 import '../../models/debt.dart';
 import '../../models/product.dart';
@@ -300,6 +301,12 @@ class _POSScreenState extends State<POSScreen> {
       _toast(res.error ?? loc.t('common.error'), AppTheme.accentRed);
       return;
     }
+    ActivityLog.record(
+      action: 'SALE_CONFIRM',
+      entity: 'Sale',
+      entityId: res.id,
+      details: 'Chek №$number · ${sale.totalAmount} so\'m · ${sale.paymentLabel}',
+    );
 
     // Qarz (nasiya) bo'lsa вЂ” mijoz + qarz yozuvini yaratamiz
     final debtAmount = result.payments['debt'] ?? 0;

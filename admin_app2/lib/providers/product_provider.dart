@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/activity_log.dart';
 import '../models/product.dart';
 import '../models/product_variant.dart';
 import '../utils/barcode_util.dart';
@@ -130,6 +131,11 @@ class ProductProvider extends ChangeNotifier {
       final docRef =
           await _firestore.collection('products').add(p.toFirestore());
       await loadProducts();
+      ActivityLog.record(
+          action: 'PRODUCT_CREATE',
+          entity: 'Product',
+          entityId: docRef.id,
+          details: p.name);
       return docRef.id;
     } catch (e) {
       debugPrint('Error adding product: $e');
@@ -287,6 +293,8 @@ class ProductProvider extends ChangeNotifier {
       batch.delete(_firestore.collection('products').doc(id));
 
       await batch.commit();
+      ActivityLog.record(
+          action: 'PRODUCT_DELETE', entity: 'Product', entityId: id);
       await loadProducts();
     } catch (e) {
       debugPrint('Error deleting product: $e');
@@ -343,6 +351,11 @@ class ProductProvider extends ChangeNotifier {
         .doc(productId)
         .update({'barcode': barcode.trim()});
     await loadProducts();
+    ActivityLog.record(
+        action: 'BARCODE_BIND',
+        entity: 'Product',
+        entityId: productId,
+        details: barcode.trim());
   }
 
   /// Variantga tashqi (ishlab chiqaruvchi) shtrixni biriktiradi.

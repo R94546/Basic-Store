@@ -5,6 +5,7 @@ class AppStrings {
     'nav.dashboard': {'uz': 'Boshqaruv', 'ru': 'Главная'},
     'nav.warehouse': {'uz': 'Sklad', 'ru': 'Склад'},
     'nav.prixod': {'uz': 'Prixod', 'ru': 'Приход'},
+    'nav.logs': {'uz': 'Jurnal', 'ru': 'Журнал'},
     'nav.stockin': {'uz': 'Prixod', 'ru': 'Приход'},
     'nav.pos': {'uz': 'Kassa', 'ru': 'Касса'},
     'nav.session': {'uz': 'Kassa smenasi', 'ru': 'Смена кассы'},

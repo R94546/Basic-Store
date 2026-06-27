@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/activity_log.dart';
 import '../models/stock_in.dart';
 
 /// Prixod (tovar kelishi) provideri.
@@ -82,6 +83,12 @@ class StockInProvider extends ChangeNotifier {
         createdAt: DateTime.now(),
       ));
       notifyListeners();
+      ActivityLog.record(
+        action: 'STOCK_IN',
+        entity: 'StockIn',
+        entityId: ref.id,
+        details: '${stockIn.productName} · ${stockIn.quantity} dona',
+      );
       return true;
     } catch (e) {
       debugPrint('Error adding stock-in: $e');

@@ -197,7 +197,6 @@ class GlassSidebar extends StatelessWidget {
   static const List<(IconData, String)> _menu = [
     (Icons.dashboard_rounded, 'nav.dashboard'),
     (Icons.inventory_2_rounded, 'nav.warehouse'),
-    (Icons.add_box_rounded, 'nav.prixod'),
     (Icons.point_of_sale_rounded, 'nav.pos'),
     (Icons.people_alt_rounded, 'nav.clients'),
     (Icons.receipt_long_rounded, 'nav.orders'),

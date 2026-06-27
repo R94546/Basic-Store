@@ -29,6 +29,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     'cash': AppTheme.accentGreen,
     'card': Colors.blue,
     'debt': AppTheme.accentRed,
+    'mixed': AppTheme.accentOrange,
   };
 
   // Kategoriya pie uchun rang palitri
@@ -270,7 +271,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     payTotals.forEach((key, value) {
       if (value <= 0) return;
       final pct = total > 0 ? value / total * 100 : 0;
-      final color = _payColors[key]!;
+      // Noma'lum to'lov usuli uchun zaxira rang (crash bo'lmasin)
+      final color = _payColors[key] ?? AppTheme.textSecondary;
       sections.add(PieChartSectionData(
         value: value.toDouble(),
         color: color,

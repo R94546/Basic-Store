@@ -127,7 +127,6 @@ class _MainShellState extends State<MainShell> {
   final List<String> _routes = [
     '/',
     '/warehouse',
-    '/stockin',
     '/pos',
     '/clients',
     '/orders',

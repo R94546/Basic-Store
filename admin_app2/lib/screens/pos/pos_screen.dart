@@ -314,7 +314,8 @@ class _POSScreenState extends State<POSScreen> {
     if (debtAmount > 0 && result.customerName != null) {
       final client = await context
           .read<ClientProvider>()
-          .getOrCreateByName(result.customerName!);
+          .getOrCreateByName(result.customerName!,
+              phone: result.customerPhone);
       if (client?.id != null && mounted) {
         await context.read<DebtProvider>().addDebt(Debt(
               clientId: client!.id!,
@@ -1181,13 +1182,36 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   final Map<String, int> _amounts = {'cash': 0, 'card': 0, 'debt': 0};
   String _active = 'cash';
   final _customerController = TextEditingController();
+  final _customerPhoneController = TextEditingController();
   final _noteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Nasiya uchun klientlar bazasini yuklab qo'yamiz
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ClientProvider>().loadClients();
+    });
+  }
 
   @override
   void dispose() {
     _customerController.dispose();
+    _customerPhoneController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickClient() async {
+    final c = await showDialog<Client>(
+      context: context,
+      builder: (_) => const _ClientPickerDialog(),
+    );
+    if (c != null && mounted) {
+      _customerController.text = c.name;
+      _customerPhoneController.text = c.phone ?? '';
+      setState(() {});
+    }
   }
 
   int get _cash => _amounts['cash']!;
@@ -1249,6 +1273,9 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         change: _change,
         payments: payments,
         customerName: _debt > 0 ? _customerController.text.trim() : null,
+        customerPhone: _debt > 0 && _customerPhoneController.text.trim().isNotEmpty
+            ? _customerPhoneController.text.trim()
+            : null,
         note: _noteController.text.trim().isEmpty
             ? null
             : _noteController.text.trim(),
@@ -1335,17 +1362,33 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         const SizedBox(height: 8),
         _methodRow('debt', loc.t('pos.debt'), Icons.event_note),
         const SizedBox(height: 10),
-        if (_debt > 0)
+        if (_debt > 0) ...[
           TextField(
             controller: _customerController,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               labelText: '${loc.t('pos.customer')} *',
               prefixIcon: const Icon(Icons.person_outline),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.people_alt_outlined),
+                tooltip: loc.t('pos.pickClient'),
+                onPressed: _pickClient,
+              ),
               isDense: true,
             ),
           ),
-        if (_debt > 0) const SizedBox(height: 8),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _customerPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: loc.t('pos.clientPhone'),
+              prefixIcon: const Icon(Icons.phone_outlined),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         // Qoldi / Qaytim
         Row(
           children: [
@@ -1510,6 +1553,7 @@ class _PaymentResult {
   final int change;
   final Map<String, int> payments;
   final String? customerName;
+  final String? customerPhone;
   final String? note;
 
   _PaymentResult({
@@ -1518,8 +1562,109 @@ class _PaymentResult {
     required this.change,
     required this.payments,
     this.customerName,
+    this.customerPhone,
     this.note,
   });
+}
+
+/// Nasiya uchun mavjud klientni bazadan tanlash dialogi (qidiruv bilan).
+class _ClientPickerDialog extends StatefulWidget {
+  const _ClientPickerDialog();
+
+  @override
+  State<_ClientPickerDialog> createState() => _ClientPickerDialogState();
+}
+
+class _ClientPickerDialogState extends State<_ClientPickerDialog> {
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+    final q = _searchCtrl.text.trim().toLowerCase();
+    var clients = context.watch<ClientProvider>().clients;
+    if (q.isNotEmpty) {
+      clients = clients
+          .where((c) =>
+              c.name.toLowerCase().contains(q) ||
+              (c.phone ?? '').contains(q))
+          .toList();
+    }
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: GlassCard(
+        blur: 20,
+        opacity: 0.95,
+        padding: const EdgeInsets.all(20),
+        child: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.people_alt_outlined,
+                      color: AppTheme.accentOrange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(loc.t('pos.pickClient'),
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary)),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: loc.t('common.search'),
+                  prefixIcon: const Icon(Icons.search),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 320,
+                child: clients.isEmpty
+                    ? Center(
+                        child: Text(loc.t('common.empty'),
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary)))
+                    : ListView.builder(
+                        itemCount: clients.length,
+                        itemBuilder: (context, i) {
+                          final c = clients[i];
+                          return ListTile(
+                            leading: const Icon(Icons.person_outline),
+                            title: Text(c.name),
+                            subtitle: (c.phone != null && c.phone!.isNotEmpty)
+                                ? Text(c.phone!)
+                                : null,
+                            onTap: () => Navigator.pop(context, c),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ===== Modellar / yordamchilar =====

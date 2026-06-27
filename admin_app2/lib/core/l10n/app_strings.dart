@@ -81,6 +81,8 @@ class AppStrings {
     'pos.remaining': {'uz': 'Qoldi', 'ru': 'Осталось'},
     'pos.exact': {'uz': 'Aniq', 'ru': 'Точно'},
     'pos.customer': {'uz': 'Mijoz ismi', 'ru': 'Имя клиента'},
+    'pos.pickClient': {'uz': 'Bazadan tanlash', 'ru': 'Выбрать из базы'},
+    'pos.clientPhone': {'uz': 'Telefon raqam', 'ru': 'Номер телефона'},
     'pos.outOfStockMsg': {
       'uz': 'Omborda yetarli emas',
       'ru': 'Недостаточно на складе'
@@ -501,6 +503,7 @@ class AppStrings {
 
     // ===== Savdo tarixi qo'shimcha =====
     'sales.noSales': {'uz': "Hali savdolar yo'q", 'ru': 'Продаж пока нет'},
+    'sales.pickDate': {'uz': 'Sana tanlash', 'ru': 'Выбрать дату'},
     'sales.details': {'uz': 'Savdo tafsilotlari', 'ru': 'Детали продажи'},
     'sales.products': {'uz': 'Tovarlar:', 'ru': 'Товары:'},
     'sales.originalAmount': {'uz': 'Asl summa:', 'ru': 'Сумма без скидки:'},

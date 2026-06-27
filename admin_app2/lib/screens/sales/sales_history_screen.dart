@@ -18,6 +18,7 @@ class SalesHistoryScreen extends StatefulWidget {
 class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   final _currencyFormat = NumberFormat.currency(locale: 'uz_UZ', symbol: "so'm", decimalDigits: 0);
   final _dateFormat = DateFormat('dd.MM.yyyy HH:mm');
+  DateTimeRange? _range;
 
   @override
   void initState() {
@@ -25,6 +26,31 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SaleProvider>().loadSales();
     });
+  }
+
+  /// Tanlangan sana oralig'i bo'yicha savdolarni filtrlaydi.
+  List<Sale> _filter(List<Sale> all) {
+    final r = _range;
+    if (r == null) return all;
+    final end = DateTime(r.end.year, r.end.month, r.end.day)
+        .add(const Duration(days: 1));
+    final start = DateTime(r.start.year, r.start.month, r.start.day);
+    return all
+        .where((s) => s.createdAt.isAfter(start) && s.createdAt.isBefore(end))
+        .toList();
+  }
+
+  String _dateOnly(DateTime d) => DateFormat('dd.MM.yyyy').format(d);
+
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: _range,
+    );
+    if (picked != null) setState(() => _range = picked);
   }
 
   @override
@@ -70,8 +96,31 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
             ],
           ),
           
-          const SizedBox(height: 24),
-          
+          const SizedBox(height: 16),
+
+          // Sana filtri
+          Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: _pickRange,
+                icon: const Icon(Icons.date_range, size: 18),
+                label: Text(_range == null
+                    ? loc.t('sales.pickDate')
+                    : '${_dateOnly(_range!.start)} — ${_dateOnly(_range!.end)}'),
+              ),
+              if (_range != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => setState(() => _range = null),
+                  icon: const Icon(Icons.clear, size: 18),
+                  tooltip: loc.t('common.cancel'),
+                ),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
           // Savdolar ro'yxati
           Expanded(
             child: Consumer<SaleProvider>(
@@ -79,8 +128,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 if (provider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
-                if (provider.sales.isEmpty) {
+                final sales = _filter(provider.sales);
+                if (sales.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -100,10 +149,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   padding: EdgeInsets.zero,
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: provider.sales.length,
+                    itemCount: sales.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final sale = provider.sales[index];
+                      final sale = sales[index];
                       return _SaleListItem(
                         sale: sale,
                         currencyFormat: _currencyFormat,

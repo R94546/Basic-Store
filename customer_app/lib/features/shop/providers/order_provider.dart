@@ -37,15 +37,16 @@ class OrderProvider extends ChangeNotifier {
       // Telefon raqamini normallashtirish
       final normalizedPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
       
+      // orderBy'siz — composite index talab qilmaslik uchun; Dart'da saralaymiz
       final snapshot = await _firestore
           .collection('orders')
           .where('customerPhone', isEqualTo: normalizedPhone)
-          .orderBy('createdAt', descending: true)
           .get();
 
       _orders = snapshot.docs
           .map((doc) => CustomerOrder.fromFirestore(doc))
-          .toList();
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } catch (e) {
       _error = e.toString();
       debugPrint('OrderProvider error: $e');
@@ -64,11 +65,11 @@ class OrderProvider extends ChangeNotifier {
       final snapshot = await _firestore
           .collection('orders')
           .where('customerId', isEqualTo: tgId)
-          .orderBy('createdAt', descending: true)
           .get();
       _orders = snapshot.docs
           .map((doc) => CustomerOrder.fromFirestore(doc))
-          .toList();
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } catch (e) {
       _error = e.toString();
       debugPrint('OrderProvider tgId error: $e');

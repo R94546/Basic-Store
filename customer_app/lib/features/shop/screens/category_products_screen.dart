@@ -37,10 +37,10 @@ class CategoryProductsScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: StreamBuilder<QuerySnapshot>(
+        // orderBy'siz — composite index talab qilmaslik uchun; Dart'da saralaymiz
         stream: FirebaseFirestore.instance
             .collection('products')
             .where('category', isEqualTo: categoryName)
-            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -78,9 +78,15 @@ class CategoryProductsScreen extends StatelessWidget {
             );
           }
 
-          final products = snapshot.data!.docs
-              .map((doc) => Product.fromFirestore(doc))
-              .toList();
+          final docs = snapshot.data!.docs.toList()
+            ..sort((a, b) {
+              final at = (a.data() as Map<String, dynamic>)['createdAt'];
+              final bt = (b.data() as Map<String, dynamic>)['createdAt'];
+              if (at is Timestamp && bt is Timestamp) return bt.compareTo(at);
+              return 0;
+            });
+          final products =
+              docs.map((doc) => Product.fromFirestore(doc)).toList();
 
           return GridView.builder(
             padding: const EdgeInsets.all(16),

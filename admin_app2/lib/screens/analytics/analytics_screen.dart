@@ -95,8 +95,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           for (final sale in sales) {
             revenue += sale.totalAmount;
             discount += sale.discountAmount;
-            payTotals[sale.paymentMethod] =
-                (payTotals[sale.paymentMethod] ?? 0) + sale.totalAmount;
+            // To'lov turlari bo'yicha aniq bo'lish: aralash to'lovda har
+            // usulning o'z summasini (payments) hisoblaymiz.
+            if (sale.payments.isNotEmpty) {
+              sale.payments.forEach((k, v) =>
+                  payTotals[k] = (payTotals[k] ?? 0) + v);
+            } else {
+              payTotals[sale.paymentMethod] =
+                  (payTotals[sale.paymentMethod] ?? 0) + sale.totalAmount;
+            }
             for (final item in sale.items) {
               final product = byId[item.productId];
               final cost = product?.buyPrice ?? 0;

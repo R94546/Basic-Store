@@ -129,7 +129,6 @@ class _MainShellState extends State<MainShell> {
     '/warehouse',
     '/stockin',
     '/pos',
-    '/session',
     '/clients',
     '/orders',
     '/discount',

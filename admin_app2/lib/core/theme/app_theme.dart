@@ -199,7 +199,6 @@ class GlassSidebar extends StatelessWidget {
     (Icons.inventory_2_rounded, 'nav.warehouse'),
     (Icons.add_box_rounded, 'nav.prixod'),
     (Icons.point_of_sale_rounded, 'nav.pos'),
-    (Icons.lock_clock_rounded, 'nav.session'),
     (Icons.people_alt_rounded, 'nav.clients'),
     (Icons.receipt_long_rounded, 'nav.orders'),
     (Icons.discount_rounded, 'nav.discount'),

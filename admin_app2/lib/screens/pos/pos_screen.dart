@@ -21,6 +21,7 @@ import '../../providers/session_provider.dart';
 import '../../services/printer_service.dart';
 import '../../utils/barcode_util.dart';
 import '../../widgets/bind_barcode_dialog.dart';
+import '../session/session_screen.dart';
 
 /// Kassa (POS) вЂ” parallel cheklar, variant tanlash, aralash to'lov,
 /// smena nazorati va chek chop etish bilan.
@@ -378,6 +379,36 @@ class _POSScreenState extends State<POSScreen> {
     );
   }
 
+  /// Smena boshqaruvini Kassa ichida dialog sifatida ochadi.
+  void _openSessionDialog() {
+    showDialog(
+      context: context,
+      builder: (dctx) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        backgroundColor: Colors.transparent,
+        child: SizedBox(
+          width: MediaQuery.of(dctx).size.width * 0.92,
+          height: MediaQuery.of(dctx).size.height * 0.9,
+          child: Stack(
+            children: [
+              const SessionScreen(),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: IconButton(
+                  onPressed: () => Navigator.pop(dctx),
+                  icon: const Icon(Icons.close),
+                  style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.6)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProductsPanel() {
     final loc = _loc;
     return Column(
@@ -413,6 +444,20 @@ class _POSScreenState extends State<POSScreen> {
                   ),
                   onChanged: (_) => setState(() {}),
                   onSubmitted: _onSearchSubmit,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Smena (kassa smenasi) — Kassa ichida
+              Consumer<SessionProvider>(
+                builder: (context, sp, _) => ElevatedButton.icon(
+                  onPressed: _openSessionDialog,
+                  icon: const Icon(Icons.lock_clock_rounded),
+                  label: Text(loc.t('nav.session')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: sp.isOpen
+                        ? AppTheme.accentGreen
+                        : AppTheme.accentRed,
+                  ),
                 ),
               ),
             ],

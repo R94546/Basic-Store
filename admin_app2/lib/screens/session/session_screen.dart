@@ -133,6 +133,37 @@ class _SessionScreenState extends State<SessionScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                // Smena savdosi (to'lov turlari bo'yicha)
+                FutureBuilder<SessionSummary>(
+                  future: provider.sessionSummary(),
+                  builder: (context, snap) {
+                    final sum = snap.data ?? const SessionSummary();
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _infoTile(loc.t('session.cashSales'),
+                              _money(sum.cashSales), AppTheme.accentGreen),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _infoTile(loc.t('session.cardSales'),
+                              _money(sum.cardSales), AppTheme.accentOrange),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _infoTile(loc.t('session.debtSales'),
+                              _money(sum.debtSales), AppTheme.accentRed),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _infoTile(loc.t('session.salesCount'),
+                              '${sum.salesCount}', AppTheme.textPrimary),
+                        ),
+                      ],
+                    );
+                  },
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -410,40 +441,13 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   void _closeDialog(LocaleProvider loc, SessionProvider provider) {
-    final controller = TextEditingController();
-    showDialog(
+    showDialog<CashSession>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(loc.t('session.close')),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: loc.t('session.closingCash'),
-            suffixText: loc.t('common.sum'),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(loc.t('common.cancel'))),
-          ElevatedButton(
-            onPressed: () async {
-              final counted = int.tryParse(controller.text) ?? 0;
-              final closed = await provider.closeSession(counted);
-              provider.loadHistory();
-              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-              if (closed != null && mounted) {
-                _showResult(loc, closed);
-              }
-            },
-            child: Text(loc.t('common.confirm')),
-          ),
-        ],
-      ),
-    );
+      builder: (_) => _CloseSessionDialog(provider: provider),
+    ).then((closed) {
+      provider.loadHistory();
+      if (closed != null && mounted) _showResult(loc, closed);
+    });
   }
 
   void _showResult(LocaleProvider loc, CashSession s) {
@@ -487,6 +491,114 @@ class _SessionScreenState extends State<SessionScreen> {
                   color: color ?? AppTheme.textPrimary)),
         ],
       ),
+    );
+  }
+}
+
+/// Smena yopish dialogi — kutilgan naqdni ko'rsatadi va sanagan summa
+/// kiritilganda farqni JONLI hisoblaydi.
+class _CloseSessionDialog extends StatefulWidget {
+  final SessionProvider provider;
+  const _CloseSessionDialog({required this.provider});
+
+  @override
+  State<_CloseSessionDialog> createState() => _CloseSessionDialogState();
+}
+
+class _CloseSessionDialogState extends State<_CloseSessionDialog> {
+  final _ctrl = TextEditingController();
+  int? _expected;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.provider.expectedCashNow().then((v) {
+      if (mounted) setState(() => _expected = v);
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  String _money(int v) =>
+      NumberFormat('#,###', 'ru').format(v).replaceAll(',', ' ');
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.read<LocaleProvider>();
+    final counted = int.tryParse(_ctrl.text) ?? 0;
+    final diff = _expected == null ? null : counted - _expected!;
+    return AlertDialog(
+      title: Text(loc.t('session.close')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(loc.t('session.expected'),
+                  style: const TextStyle(color: AppTheme.textSecondary)),
+              Text(
+                _expected == null
+                    ? '...'
+                    : '${_money(_expected!)} ${loc.t('common.sum')}',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            autofocus: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: loc.t('session.closingCash'),
+              suffixText: loc.t('common.sum'),
+            ),
+          ),
+          if (diff != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(loc.t('session.difference'),
+                      style: const TextStyle(color: AppTheme.textSecondary)),
+                  Text(
+                    '${_money(diff)} ${loc.t('common.sum')}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: diff == 0
+                            ? AppTheme.accentGreen
+                            : AppTheme.accentRed),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.t('common.cancel'))),
+        ElevatedButton(
+          onPressed: _saving
+              ? null
+              : () async {
+                  setState(() => _saving = true);
+                  final closed = await widget.provider.closeSession(counted);
+                  if (context.mounted) Navigator.pop(context, closed);
+                },
+          child: Text(loc.t('common.confirm')),
+        ),
+      ],
     );
   }
 }

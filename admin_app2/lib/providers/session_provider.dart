@@ -3,6 +3,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/cash_session.dart';
 
+/// Smena davomidagi to'lov turlari bo'yicha yig'indi.
+class SessionSummary {
+  final int cashSales;
+  final int cardSales;
+  final int debtSales;
+  final int salesCount;
+  const SessionSummary({
+    this.cashSales = 0,
+    this.cardSales = 0,
+    this.debtSales = 0,
+    this.salesCount = 0,
+  });
+
+  int get totalRevenue => cashSales + cardSales + debtSales;
+}
+
 /// Kassa smenasi provideri — ochish/yopish, kirim/chiqim.
 class SessionProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -105,28 +121,52 @@ class SessionProvider extends ChangeNotifier {
     }
   }
 
-  /// Smena davomidagi naqd savdoni hisoblash
-  Future<int> _calcCashSales() async {
-    if (_current == null) return 0;
+  /// Smena davomidagi savdolarni to'lov turlari bo'yicha yig'ish.
+  /// Aralash to'lovlar uchun har sotuvning AYNAN naqd/karta/nasiya qismini
+  /// (`payments` map) hisoblaymiz — shuning uchun kutilgan naqd to'g'ri chiqadi.
+  Future<SessionSummary> sessionSummary() async {
+    if (_current == null) return const SessionSummary();
     try {
       final snap = await _firestore
           .collection('sales')
           .where('createdAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(_current!.openedAt))
           .get();
-      int total = 0;
+      int cash = 0, card = 0, debt = 0;
       for (final doc in snap.docs) {
         final data = doc.data();
-        if ((data['paymentMethod'] ?? 'cash') == 'cash') {
-          total += ((data['totalAmount'] ?? 0) as num).toInt();
+        final payments = data['payments'] as Map<String, dynamic>?;
+        if (payments != null && payments.isNotEmpty) {
+          cash += ((payments['cash'] ?? 0) as num).toInt();
+          card += ((payments['card'] ?? 0) as num).toInt();
+          debt += ((payments['debt'] ?? 0) as num).toInt();
+        } else {
+          // Eski yozuvlar (payments yo'q) — paymentMethod bo'yicha
+          final m = (data['paymentMethod'] ?? 'cash') as String;
+          final amt = ((data['totalAmount'] ?? 0) as num).toInt();
+          if (m == 'card') {
+            card += amt;
+          } else if (m == 'debt') {
+            debt += amt;
+          } else {
+            cash += amt;
+          }
         }
       }
-      return total;
+      return SessionSummary(
+        cashSales: cash,
+        cardSales: card,
+        debtSales: debt,
+        salesCount: snap.docs.length,
+      );
     } catch (e) {
-      debugPrint('Error calc cash sales: $e');
-      return 0;
+      debugPrint('Error session summary: $e');
+      return const SessionSummary();
     }
   }
+
+  /// Smena davomidagi naqd savdo (aralash to'lovning naqd qismi bilan).
+  Future<int> _calcCashSales() async => (await sessionSummary()).cashSales;
 
   /// Kutilgan naqd (jonli hisob)
   Future<int> expectedCashNow() async {

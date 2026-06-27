@@ -79,6 +79,30 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
+  /// Buyurtma egasi (Firebase anonim auth uid) bo'yicha — xavfsiz: rules
+  /// faqat o'z buyurtmalarini o'qishga ruxsat beradi.
+  Future<void> loadOrdersByOwner(String uid) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final snapshot = await _firestore
+          .collection('orders')
+          .where('ownerUid', isEqualTo: uid)
+          .get();
+      _orders = snapshot.docs
+          .map((doc) => CustomerOrder.fromFirestore(doc))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('OrderProvider owner error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Barcha buyurtmalarni yuklash (hozircha auth yo'q shuning uchun hammasi)
   Future<void> loadAllOrders() async {
     _isLoading = true;

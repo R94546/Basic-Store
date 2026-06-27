@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
@@ -100,6 +101,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final tg = TelegramService.user;
 
       final order = CustomerOrder(
+        ownerUid: FirebaseAuth.instance.currentUser?.uid,
         customerId: tg?.id,
         customerName: _nameController.text.trim(),
         customerPhone: normalizedPhone,

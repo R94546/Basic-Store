@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
-import 'package:customer_app/core/telegram/telegram_service.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
@@ -52,33 +51,16 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen>
   }
 
   Future<void> _loadOrders() async {
-    // Telegram ichida bo'lsa — TG foydalanuvchisi bo'yicha
-    final tg = TelegramService.user;
-    if (tg != null) {
-      if (!mounted) return;
-      setState(() => _hasPhone = true);
-      await context.read<OrderProvider>().loadOrdersByTgId(tg.id);
-      return;
-    }
-
-    // Aks holda — checkout'da saqlangan telefon bo'yicha
-    String? phone;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      phone = prefs.getString('customer_phone');
-    } catch (_) {
-      phone = null;
-    }
-
+    // Xavfsizlik: buyurtmalar egasi (anonim auth uid) bo'yicha o'qiymiz —
+    // Firestore qoidalari faqat o'z buyurtmalaringizni ko'rsatadi.
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     if (!mounted) return;
-
-    if (phone == null || phone.trim().isEmpty) {
+    if (uid == null || uid.isEmpty) {
       setState(() => _hasPhone = false);
       return;
     }
-
     setState(() => _hasPhone = true);
-    await context.read<OrderProvider>().loadOrdersByPhone(phone);
+    await context.read<OrderProvider>().loadOrdersByOwner(uid);
   }
 
   @override
@@ -412,12 +394,12 @@ class _OrderCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: const RoundedRectangleBorder(),
-        title: Text(loc.t('orders.cancel')),
-        content: Text(loc.t('orders.cancel')),
+        title: Text(loc.t('orders.cancelConfirmTitle')),
+        content: Text(loc.t('orders.cancelConfirmBody')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(loc.t('common.close').toUpperCase()),
+            child: Text(loc.t('common.no').toUpperCase()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -435,7 +417,7 @@ class _OrderCard extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                success ? loc.t('orders.cancel') : loc.t('common.error')),
+                success ? loc.t('orders.cancelled') : loc.t('common.error')),
           ),
         );
       }

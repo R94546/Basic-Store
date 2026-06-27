@@ -62,7 +62,7 @@ class StockInProvider extends ChangeNotifier {
           if (!snap.exists) {
             throw Exception('Mahsulot topilmadi');
           }
-          final currentQty = (snap.data()?['quantity'] ?? 0) as int;
+          final currentQty = ((snap.data()?['quantity'] ?? 0) as num).toInt();
           txn.set(ref, stockIn.toFirestore());
           txn.update(productRef, {
             'quantity': currentQty + stockIn.quantity,

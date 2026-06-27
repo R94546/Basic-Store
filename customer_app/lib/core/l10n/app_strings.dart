@@ -114,6 +114,19 @@ class AppStrings {
     'orders.completed': {'uz': 'Yakunlangan', 'ru': 'Завершённые'},
     'orders.empty': {'uz': 'Buyurtmalar yo\'q', 'ru': 'Заказов нет'},
     'orders.cancel': {'uz': 'Bekor qilish', 'ru': 'Отменить'},
+    'orders.cancelConfirmTitle': {
+      'uz': 'Buyurtmani bekor qilasizmi?',
+      'ru': 'Отменить заказ?'
+    },
+    'orders.cancelConfirmBody': {
+      'uz': 'Bu amalni qaytarib bo\'lmaydi.',
+      'ru': 'Это действие нельзя отменить.'
+    },
+    'orders.cancelled': {
+      'uz': 'Buyurtma bekor qilindi',
+      'ru': 'Заказ отменён'
+    },
+    'common.no': {'uz': 'Yo\'q', 'ru': 'Нет'},
     'orders.noPhone': {
       'uz': 'Buyurtma bergach bu yerda ko\'rinadi',
       'ru': 'Заказы появятся здесь после оформления'

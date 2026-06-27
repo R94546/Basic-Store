@@ -28,11 +28,13 @@ class CatalogProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final snap = await _firestore
-          .collection('products')
-          .orderBy('createdAt', descending: true)
-          .get();
-      _products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+      // orderBy'siz olamiz — Firestore orderBy `createdAt`siz hujjatlarni
+      // butunlay tushirib qoldiradi (eski/import mahsulotlar yo'qoladi).
+      // Dart'da saralaymiz.
+      final snap = await _firestore.collection('products').get();
+      _products = snap.docs.map((d) => Product.fromFirestore(d)).toList()
+        ..sort((a, b) => (b.createdAt ?? DateTime(2000))
+            .compareTo(a.createdAt ?? DateTime(2000)));
       _loaded = true;
     } catch (e) {
       debugPrint('Catalog load error: $e');

@@ -97,20 +97,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }).firstOrNull;
   }
 
+  /// Mavjud o'qlar (size/color) tanlanganmi — to'liq SKU aniqlangani.
+  bool get _variantReady =>
+      (_sizes.isEmpty || _selectedSize != null) &&
+      (_colors.isEmpty || _selectedColor != null);
+
   int get _stock {
-    if (_variants.isNotEmpty) {
-      final m = _matchedVariant;
-      if (m != null && _selectedSize != null && _selectedColor != null) {
-        return m.quantity;
-      }
-      // tanlanmagan bo'lsa umumiy
-      return _p.quantity;
-    }
+    if (_variants.isEmpty) return _p.quantity;
+    // Kerakli o'qlar tanlangan bo'lsa — aynan o'sha variant qoldig'i
+    // (bitta o'qli tovarda ham to'g'ri ishlaydi; oversellni oldini oladi).
+    if (_variantReady) return _matchedVariant?.quantity ?? 0;
     return _p.quantity;
   }
 
   int get _finalPrice {
-    final mod = _matchedVariant?.priceModifier ?? 0;
+    final mod = _variantReady ? (_matchedVariant?.priceModifier ?? 0) : 0;
     return _basePrice + mod;
   }
 

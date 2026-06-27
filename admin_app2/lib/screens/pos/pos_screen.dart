@@ -35,6 +35,7 @@ class POSScreen extends StatefulWidget {
 class _POSScreenState extends State<POSScreen> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
+  bool _checkingOut = false; // takroriy to'lovni (double-tap) oldini olish
 
   // ===== Shtrix-skaner (USB/Bluetooth вЂ” klaviatura emulyatsiyasi) =====
   // Skaner kodni tez "yozadi" va Enter bilan tugatadi. Qidiruv maydoni
@@ -253,7 +254,7 @@ class _POSScreenState extends State<POSScreen> {
 
   // ===== To'lov =====
   Future<void> _checkout() async {
-    if (_cart.isEmpty) return;
+    if (_cart.isEmpty || _checkingOut) return;
     final loc = _loc;
 
     // Smena ochiq bo'lishi shart
@@ -267,7 +268,8 @@ class _POSScreenState extends State<POSScreen> {
       builder: (_) => _PaymentDialog(total: _totalPrice),
     );
     if (result == null || !mounted) return;
-
+    setState(() => _checkingOut = true);
+    try {
     final saleProvider = context.read<SaleProvider>();
     final number = saleProvider.nextSaleNumber;
 
@@ -339,6 +341,9 @@ class _POSScreenState extends State<POSScreen> {
         : '';
     _toast('${loc.t('pos.check')} #$number ${loc.t('pos.paid')} вњ“$changeMsg',
         AppTheme.accentGreen);
+    } finally {
+      if (mounted) setState(() => _checkingOut = false);
+    }
   }
 
   Future<void> _printReceipt(int number, Sale sale) async {

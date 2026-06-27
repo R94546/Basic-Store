@@ -50,6 +50,7 @@ extension OrderStatusX on OrderStatus {
 /// Represents a customer order
 class CustomerOrder {
   final String? id;
+  final String? ownerUid;       // Firebase anonim auth uid (xavfsizlik: o'qish egasi)
   final String? customerId;     // Telegram user id (bo'lsa)
   final String customerName;
   final String customerPhone;
@@ -69,6 +70,7 @@ class CustomerOrder {
 
   CustomerOrder({
     this.id,
+    this.ownerUid,
     this.customerId,
     required this.customerName,
     required this.customerPhone,
@@ -93,6 +95,7 @@ class CustomerOrder {
   /// Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
+      if (ownerUid != null) 'ownerUid': ownerUid,
       'customerId': customerId,
       'customerName': customerName,
       'customerPhone': customerPhone,
@@ -117,6 +120,7 @@ class CustomerOrder {
     final data = doc.data() as Map<String, dynamic>;
     return CustomerOrder(
       id: doc.id,
+      ownerUid: data['ownerUid'],
       customerId: data['customerId'],
       customerName: data['customerName'] ?? '',
       customerPhone: data['customerPhone'] ?? '',

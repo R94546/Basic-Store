@@ -105,7 +105,7 @@ class SaleProvider extends ChangeNotifier {
           if (!snap.exists) {
             throw _StockException('Mahsulot topilmadi: ${itemName[pid]}');
           }
-          final qty = (snap.data()?['quantity'] ?? 0) as int;
+          final qty = ((snap.data()?['quantity'] ?? 0) as num).toInt();
           if (qty < productDec[pid]!) {
             throw _StockException(
                 '"${itemName[pid]}" omborda yetarli emas (qoldi: $qty)');
@@ -124,7 +124,7 @@ class SaleProvider extends ChangeNotifier {
               .doc(parts[1]);
           final snap = await txn.get(ref);
           if (snap.exists) {
-            variantQty[vk] = (snap.data()?['quantity'] ?? 0) as int;
+            variantQty[vk] = ((snap.data()?['quantity'] ?? 0) as num).toInt();
           }
         }
 

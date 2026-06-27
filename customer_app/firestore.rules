@@ -24,11 +24,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Buyurtmalar — mijoz yaratadi va o'qiydi; faqat admin o'zgartiradi/o'chiradi
+    // Buyurtmalar.
+    // - create: ochiq (mijoz buyurtma bera olishi shart, anonim auth bo'lmasa ham)
+    // - read: FAQAT egasi (anonim auth uid) yoki admin — PII (telefon/manzil/GPS)
+    //   butun dunyoga ochiq bo'lmasligi uchun
+    // - update: admin, yoki egasi o'z PENDING buyurtmasini bekor qilishi mumkin
+    // - delete: faqat admin
     match /orders/{id} {
       allow create: if true;
-      allow read: if true;
-      allow update, delete: if isAdmin();
+      allow read: if isAdmin()
+        || (request.auth != null && resource.data.ownerUid == request.auth.uid);
+      allow update: if isAdmin()
+        || (request.auth != null
+            && resource.data.ownerUid == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'cancelled');
+      allow delete: if isAdmin();
     }
 
     // Qolgan hammasi (sotuvlar, mijozlar, qarzlar, smenalar, prixod,

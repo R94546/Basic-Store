@@ -431,7 +431,7 @@ class _SaleListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${sale.items.length} $itemsUnit',
+                    '${sale.items.fold<int>(0, (s, i) => s + i.quantity)} $itemsUnit',
                     style: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 12,

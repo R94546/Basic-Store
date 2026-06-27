@@ -234,7 +234,7 @@ class ProductProvider extends ChangeNotifier {
           final snap = snaps[id]!;
           if (!snap.exists) continue;
           final cur = (snap.data() as Map<String, dynamic>?)?['quantity'] ?? 0;
-          txn.update(refs[id]!, {'quantity': (cur as int) + add[id]!});
+          txn.update(refs[id]!, {'quantity': (cur as num).toInt() + add[id]!});
         }
         final updates = <String, dynamic>{};
         if (buyPrice != null && buyPrice > 0) updates['buyPrice'] = buyPrice;

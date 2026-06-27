@@ -146,6 +146,9 @@ class SessionProvider extends ChangeNotifier {
       int cash = 0, card = 0, debt = 0;
       for (final doc in snap.docs) {
         final data = doc.data();
+        // Online (yetkazib berish) sotuvlari fizik kassaga kirmaydi — kassa
+        // naqd hisobiga qo'shmaymiz, aks holda smena farqi noto'g'ri chiqadi.
+        if (data['source'] == 'online') continue;
         final payments = data['payments'] as Map<String, dynamic>?;
         if (payments != null && payments.isNotEmpty) {
           cash += ((payments['cash'] ?? 0) as num).toInt();

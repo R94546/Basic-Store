@@ -243,6 +243,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         color: Colors.teal,
       ),
       _KpiCard(
+        title: loc.t('report.margin'),
+        value: revenue > 0
+            ? '${(profit * 100 / revenue).toStringAsFixed(1)}%'
+            : '0%',
+        icon: Icons.percent_rounded,
+        color: Colors.deepPurple,
+      ),
+      _KpiCard(
         title: loc.t('report.discountGiven'),
         value: _currencyFormat.format(discount),
         icon: Icons.discount_rounded,

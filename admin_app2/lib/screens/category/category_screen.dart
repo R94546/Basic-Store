@@ -6,6 +6,7 @@ import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/category.dart';
 import '../../providers/category_provider.dart';
+import '../../providers/product_provider.dart';
 
 /// Kategoriyalarni boshqarish ekrani
 class CategoryScreen extends StatefulWidget {
@@ -21,6 +22,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CategoryProvider>().loadCategories();
+      // Har kategoriyadagi tovar sonini jonli hisoblash uchun mahsulotlar kerak
+      final pp = context.read<ProductProvider>();
+      if (pp.products.isEmpty) pp.loadProducts();
     });
   }
 
@@ -212,10 +216,20 @@ class _CategoryListItem extends StatelessWidget {
                       fontSize: 16,
                       color: AppTheme.textPrimary),
                 ),
-                Text(
-                  '${category.productCount} ${loc.t('common.qty').toLowerCase()}',
-                  style: const TextStyle(
-                      color: AppTheme.textSecondary, fontSize: 12),
+                Builder(
+                  builder: (context) {
+                    // Jonli sanoq — mahsulotlardan (eskirgan productCount emas)
+                    final n = context
+                        .watch<ProductProvider>()
+                        .products
+                        .where((p) => p.category == category.name)
+                        .length;
+                    return Text(
+                      '$n ${loc.t('common.qty').toLowerCase()}',
+                      style: const TextStyle(
+                          color: AppTheme.textSecondary, fontSize: 12),
+                    );
+                  },
                 ),
               ],
             ),

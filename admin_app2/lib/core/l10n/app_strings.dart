@@ -332,6 +332,8 @@ class AppStrings {
       'ru': 'Принтер не найден.\nПодключите USB-кабель и повторите сканирование.'
     },
     'printer.default': {'uz': 'Asosiy printer', 'ru': 'Принтер по умолчанию'},
+    'printer.connected': {'uz': 'Ulangan', 'ru': 'Подключён'},
+    'printer.offline': {'uz': 'Ulanmagan (oflayn)', 'ru': 'Не подключён (офлайн)'},
     'printer.selected': {'uz': 'tanlandi', 'ru': 'выбран'},
     'printer.autoReceipt': {
       'uz': 'Chekni avtomatik chop etish',

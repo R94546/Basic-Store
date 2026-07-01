@@ -20,7 +20,19 @@ class PrinterProvider extends ChangeNotifier {
   List<Printer> get availablePrinters => _availablePrinters;
   Printer? get selectedPrinter => _selectedPrinter;
   bool get isLoading => _isLoading;
+  /// Printer TANLANGAN (sozlangan) — nom saqlangan. Print urinishi uchun.
   bool get isConfigured => _selectedPrinter != null;
+
+  /// Printer HOZIR ROST ulangan/onlaynmi — nafaqat tanlangan. Status uchun.
+  /// Tanlangan printer oxirgi skan ro'yxatida bor va `isAvailable` bo'lsa.
+  bool get isConnected {
+    final sel = _selectedPrinter;
+    if (sel == null) return false;
+    for (final p in _availablePrinters) {
+      if (p.name == sel.name) return p.isAvailable;
+    }
+    return false;
+  }
   bool get autoPrintReceipt => _autoPrintReceipt;
   bool get autoPrintLabel => _autoPrintLabel;
   int get labelWidthMm => _labelWidthMm;
@@ -64,18 +76,22 @@ class PrinterProvider extends ChangeNotifier {
         _labelHeightMm = (data['labelHeightMm'] ?? 30) as int;
 
         final savedPrinterName = data['printerName'] as String?;
-        if (savedPrinterName != null) {
+        if (savedPrinterName != null && savedPrinterName.isNotEmpty) {
           await scanPrinters();
           // Saqlangan printerni topish
-          final matchingPrinter = _availablePrinters.where(
-            (p) => p.name == savedPrinterName
-          ).firstOrNull;
-          
+          final matchingPrinter = _availablePrinters
+              .where((p) => p.name == savedPrinterName)
+              .firstOrNull;
+
           if (matchingPrinter != null) {
             await selectPrinter(matchingPrinter);
+          } else {
+            // Topilmadi (oflayn/uzilgan) — nomi ko'rinsin, lekin ROST ulanmagan.
+            // Placeholder: isConfigured=true, isConnected=false.
+            _selectedPrinter = Printer(url: savedPrinterName, name: savedPrinterName);
           }
         }
-        
+
         notifyListeners();
       }
     } catch (e) {

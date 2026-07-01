@@ -180,19 +180,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // Printer Settings
                       Consumer<PrinterProvider>(
                         builder: (context, printerProvider, _) {
+                          final connected = printerProvider.isConnected;
+                          final configured = printerProvider.isConfigured;
                           return _SettingsCard(
                             icon: Icons.print,
                             title: loc.t('settings.printerSettings'),
-                            subtitle: printerProvider.isConfigured
-                                ? printerProvider.selectedPrinter!.name
-                                : loc.t('settings.notConfigured'),
+                            subtitle: !configured
+                                ? loc.t('settings.notConfigured')
+                                : connected
+                                    ? '${printerProvider.selectedPrinter!.name} • ${loc.t('printer.connected')}'
+                                    : '${printerProvider.selectedPrinter!.name} • ${loc.t('printer.offline')}',
                             onTap: _showPrinterSettings,
-                            trailing: printerProvider.isConfigured
-                                ? const Icon(
-                                    Icons.check_circle,
-                                    color: AppTheme.accentGreen,
-                                  )
-                                : null,
+                            // Yashil "ulangan" faqat ROST ulangan bo'lsa;
+                            // tanlangan lekin oflayn — sariq ogohlantirish.
+                            trailing: !configured
+                                ? null
+                                : connected
+                                    ? const Icon(Icons.check_circle,
+                                        color: AppTheme.accentGreen)
+                                    : const Icon(Icons.warning_amber_rounded,
+                                        color: AppTheme.accentOrange),
                           );
                         },
                       ),

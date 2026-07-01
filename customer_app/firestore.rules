@@ -34,7 +34,10 @@ service cloud.firestore {
     // - update: admin, yoki egasi o'z PENDING buyurtmasini bekor qilishi mumkin
     // - delete: faqat admin
     match /orders/{id} {
-      allow create: if true;
+      // create: faqat tizimga kirgan (anonim/Telegram) foydalanuvchi — skript/
+      // bot auth'siz buyurtma (spam) yarata olmaydi. Egasi o'ziniki bo'lishi shart.
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
       allow read: if isAdmin()
         || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       allow update: if isAdmin()

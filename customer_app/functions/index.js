@@ -197,6 +197,13 @@ exports.telegramLoginAuth = onCall(async (req) => {
     .update(dataCheck)
     .digest("hex");
   if (computed !== hash) {
+    // Diagnostika (imzo mos kelmasa) — qaysi maydonlar kelganini ko'rsatadi
+    console.error("telegramLoginAuth HMAC mismatch", {
+      keys: Object.keys(data),
+      dataCheck,
+      computed,
+      hash,
+    });
     throw new HttpsError("permission-denied", "Login imzosi noto'g'ri");
   }
   // Yangilik (replay hujumidan himoya): auth_date 1 kundan eski bo'lmasin

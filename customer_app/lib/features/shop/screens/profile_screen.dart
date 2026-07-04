@@ -172,6 +172,7 @@ class _TelegramWebLoginTile extends StatefulWidget {
 
 class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
   bool _loading = false;
+  String? _botId; // oldindan yuklanadi (popup user-gesture ichida ochilishi uchun)
   StreamSubscription<User?>? _authSub;
 
   @override
@@ -181,6 +182,22 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
     _authSub = FirebaseAuth.instance.userChanges().listen((_) {
       if (mounted) setState(() {});
     });
+    // Bot ID'ni OLDINDAN yuklab qo'yamiz — shunda tugma bosilganda popup
+    // to'g'ridan-to'g'ri (await'siz) ochiladi va brauzer uni bloklamaydi.
+    if (kIsWeb && !TelegramService.isInTelegram) {
+      _fetchBotId();
+    }
+  }
+
+  Future<void> _fetchBotId() async {
+    try {
+      final res =
+          await FirebaseFunctions.instance.httpsCallable('telegramLoginInfo').call();
+      final id = ((res.data as Map)['botId'] ?? '').toString();
+      if (mounted && id.isNotEmpty) setState(() => _botId = id);
+    } catch (_) {
+      // Jim — tap paytida qayta urinamiz
+    }
   }
 
   @override
@@ -192,40 +209,47 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
   Future<void> _login() async {
     final loc = context.read<LocaleProvider>();
     if (!TelegramService.canWebLogin) {
-      _showError(loc);
+      _showError(loc, 'widget yuklanmadi');
+      return;
+    }
+    final botId = _botId ?? '';
+    if (botId.isEmpty) {
+      // Hali yuklanmagan bo'lsa — yuklab, keyin qayta bosishni so'raymiz
+      _showError(loc, 'bot id hali tayyor emas, qayta urining');
+      _fetchBotId();
       return;
     }
     setState(() => _loading = true);
     try {
-      final fns = FirebaseFunctions.instance;
-      // 1) Bot ID (maxfiy token ochilmaydi — faqat ochiq raqamli id)
-      final infoRes = await fns.httpsCallable('telegramLoginInfo').call();
-      final botId = ((infoRes.data as Map)['botId'] ?? '').toString();
-      if (botId.isEmpty) throw Exception('bot id yo\'q');
-
-      // 2) Login Widget popup — bekor qilinsa null (jim o'tamiz)
+      // 1) Login Widget popup — MUHIM: bu await'dan OLDIN sinxron ochiladi
+      //    (user-gesture kontekstida), aks holda brauzer popup'ni bloklaydi.
       final user = await TelegramService.widgetLogin(botId);
-      if (user == null) return;
+      if (user == null) return; // bekor qilindi — jim o'tamiz
 
-      // 3) Server HMAC tekshirib tg_<id> custom token beradi
-      final authRes = await fns.httpsCallable('telegramLoginAuth').call(user);
+      // 2) Server HMAC tekshirib tg_<id> custom token beradi
+      final authRes =
+          await FirebaseFunctions.instance.httpsCallable('telegramLoginAuth').call(user);
       final token = (authRes.data as Map)['token'] as String?;
       if (token == null || token.isEmpty) throw Exception('token yo\'q');
 
-      // 4) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
+      // 3) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
       await FirebaseAuth.instance.signInWithCustomToken(token);
       // userChanges tinglovchisi UI'ni yangilaydi
-    } catch (_) {
-      if (mounted) _showError(loc);
+    } catch (e) {
+      if (mounted) _showError(loc, e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showError(LocaleProvider loc) {
+  void _showError(LocaleProvider loc, [String? detail]) {
     if (!mounted) return;
+    final base = loc.t('profile.tgLoginError');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(loc.t('profile.tgLoginError'))),
+      SnackBar(
+        content: Text(detail == null ? base : '$base ($detail)'),
+        duration: const Duration(seconds: 6),
+      ),
     );
   }
 

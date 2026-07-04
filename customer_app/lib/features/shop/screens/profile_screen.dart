@@ -212,27 +212,30 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
       _showError(loc, 'widget yuklanmadi');
       return;
     }
-    final botId = _botId ?? '';
-    if (botId.isEmpty) {
-      // Hali yuklanmagan bo'lsa — yuklab, keyin qayta bosishni so'raymiz
-      _showError(loc, 'bot id hali tayyor emas, qayta urining');
-      _fetchBotId();
-      return;
-    }
     setState(() => _loading = true);
     try {
-      // 1) Login Widget popup — MUHIM: bu await'dan OLDIN sinxron ochiladi
-      //    (user-gesture kontekstida), aks holda brauzer popup'ni bloklaydi.
-      final user = await TelegramService.widgetLogin(botId);
-      if (user == null) return; // bekor qilindi — jim o'tamiz
+      final fns = FirebaseFunctions.instance;
+      // 1) Bot ID — oldindan yuklangan bo'lsa darhol, aks holda shu yerda
+      //    (bosishdan ~5s ichida window.open baribir ochiladi — transient
+      //    user activation). Maxfiy token OCHILMAYDI, faqat ochiq id.
+      var botId = _botId ?? '';
+      if (botId.isEmpty) {
+        final infoRes = await fns.httpsCallable('telegramLoginInfo').call();
+        botId = ((infoRes.data as Map)['botId'] ?? '').toString();
+        _botId = botId;
+      }
+      if (botId.isEmpty) throw Exception('bot id bo\'sh');
 
-      // 2) Server HMAC tekshirib tg_<id> custom token beradi
-      final authRes =
-          await FirebaseFunctions.instance.httpsCallable('telegramLoginAuth').call(user);
+      // 2) Login Widget popup — bekor qilinsa null (jim o'tamiz)
+      final user = await TelegramService.widgetLogin(botId);
+      if (user == null) return;
+
+      // 3) Server HMAC tekshirib tg_<id> custom token beradi
+      final authRes = await fns.httpsCallable('telegramLoginAuth').call(user);
       final token = (authRes.data as Map)['token'] as String?;
       if (token == null || token.isEmpty) throw Exception('token yo\'q');
 
-      // 3) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
+      // 4) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
       await FirebaseAuth.instance.signInWithCustomToken(token);
       // userChanges tinglovchisi UI'ni yangilaydi
     } catch (e) {

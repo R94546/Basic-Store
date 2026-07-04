@@ -150,5 +150,21 @@ class AppStrings {
     'profile.myOrders': {'uz': 'Buyurtmalarim', 'ru': 'Мои заказы'},
     'profile.contact': {'uz': 'Aloqa', 'ru': 'Контакты'},
     'profile.about': {'uz': 'Biz haqimizda', 'ru': 'О нас'},
+    'profile.tgLogin': {
+      'uz': 'Telegram bilan kirish',
+      'ru': 'Войти через Telegram'
+    },
+    'profile.tgLoginHint': {
+      'uz': 'Buyurtma tarixingiz saqlansin',
+      'ru': 'Чтобы сохранить историю заказов'
+    },
+    'profile.tgLoggedIn': {
+      'uz': 'Telegram orqali kirgansiz',
+      'ru': 'Вы вошли через Telegram'
+    },
+    'profile.tgLoginError': {
+      'uz': 'Kirishda xatolik. Qayta urinib ko\'ring',
+      'ru': 'Ошибка входа. Попробуйте ещё раз'
+    },
   };
 }

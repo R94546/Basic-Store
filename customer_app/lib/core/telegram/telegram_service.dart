@@ -20,4 +20,13 @@ class TelegramService {
     impl.ready();
     impl.expand();
   }
+
+  /// Oddiy brauzerda «Telegram bilan kirish» (Login Widget) mavjudmi.
+  /// Faqat web'da va widget skripti yuklangan bo'lsa true.
+  static bool get canWebLogin => impl.hasLoginWidget();
+
+  /// Login Widget popup'ini ochib, tekshirilgan foydalanuvchi maydonlarini
+  /// qaytaradi (serverda HMAC tekshirish uchun). Bekor/xatoda null.
+  static Future<Map<String, Object?>?> widgetLogin(String botId) =>
+      impl.widgetLogin(botId);
 }

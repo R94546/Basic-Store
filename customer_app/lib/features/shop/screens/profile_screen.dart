@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -42,6 +47,9 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   // Telegram foydalanuvchisi (Telegram'da ochilganda)
                   _buildUserHeader(loc),
+
+                  // Oddiy brauzerda «Telegram bilan kirish» (yagona akkaunt)
+                  const _TelegramWebLoginTile(),
 
                   // Language switch
                   Text(
@@ -144,6 +152,155 @@ class ProfileScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 13, color: Colors.grey[600])),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Oddiy brauzerda (Mini App EMAS) «Telegram bilan kirish» tugmasi.
+/// Web'da, Telegram ichida emas va hali tg_ akkaunti bilan kirmagan bo'lsa
+/// ko'rinadi. Kirgach — server AYNAN SHU tg_<id> uid beradi, shu orqali web va
+/// Mini App bitta akkaunt (buyurtma tarixi birlashadi).
+class _TelegramWebLoginTile extends StatefulWidget {
+  const _TelegramWebLoginTile();
+
+  @override
+  State<_TelegramWebLoginTile> createState() => _TelegramWebLoginTileState();
+}
+
+class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
+  bool _loading = false;
+  StreamSubscription<User?>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Kirgan/chiqilgandan keyin holatni yangilash uchun auth'ni kuzatamiz
+    _authSub = FirebaseAuth.instance.userChanges().listen((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    final loc = context.read<LocaleProvider>();
+    if (!TelegramService.canWebLogin) {
+      _showError(loc);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final fns = FirebaseFunctions.instance;
+      // 1) Bot ID (maxfiy token ochilmaydi — faqat ochiq raqamli id)
+      final infoRes = await fns.httpsCallable('telegramLoginInfo').call();
+      final botId = ((infoRes.data as Map)['botId'] ?? '').toString();
+      if (botId.isEmpty) throw Exception('bot id yo\'q');
+
+      // 2) Login Widget popup — bekor qilinsa null (jim o'tamiz)
+      final user = await TelegramService.widgetLogin(botId);
+      if (user == null) return;
+
+      // 3) Server HMAC tekshirib tg_<id> custom token beradi
+      final authRes = await fns.httpsCallable('telegramLoginAuth').call(user);
+      final token = (authRes.data as Map)['token'] as String?;
+      if (token == null || token.isEmpty) throw Exception('token yo\'q');
+
+      // 4) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
+      await FirebaseAuth.instance.signInWithCustomToken(token);
+      // userChanges tinglovchisi UI'ni yangilaydi
+    } catch (_) {
+      if (mounted) _showError(loc);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _showError(LocaleProvider loc) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(loc.t('profile.tgLoginError'))),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Faqat oddiy brauzerda: Mini App'da kerak emas, mobil'da widget yo'q
+    if (!kIsWeb ||
+        TelegramService.isInTelegram ||
+        !TelegramService.canWebLogin) {
+      return const SizedBox.shrink();
+    }
+
+    final loc = context.watch<LocaleProvider>();
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final loggedIn = uid.startsWith('tg_');
+
+    if (loggedIn) {
+      // Allaqachon Telegram akkaunti bilan kirgan
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Color(0xFF2AABEE), size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                loc.t('profile.tgLoggedIn'),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Kirish tugmasi
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _loading ? null : _login,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2AABEE), // Telegram ko'k
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: const RoundedRectangleBorder(),
+              ),
+              icon: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send, size: 18),
+              label: Text(
+                loc.t('profile.tgLogin').toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            loc.t('profile.tgLoginHint'),
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
           ),
         ],
       ),

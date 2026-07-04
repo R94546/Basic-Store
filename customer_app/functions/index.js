@@ -156,6 +156,63 @@ exports.telegramAuth = onCall(async (req) => {
   return { token };
 });
 
+// Telegram Login Widget uchun bot ID (tokenning ':' dan oldingi ochiq qismi).
+// Web mijoz `Telegram.Login.auth({bot_id})` chaqirishi uchun kerak. Maxfiy
+// token OCHILMAYDI — faqat ochiq bo'lgan raqamli id qaytadi.
+exports.telegramLoginInfo = onCall(async () => {
+  const cfg = await getTg();
+  const t = cfg && cfg.botToken ? String(cfg.botToken) : "";
+  const botId = t.includes(":") ? t.split(":")[0] : "";
+  return { botId };
+});
+
+// Telegram Login Widget (oddiy brauzer, Mini App EMAS) ma'lumotini tekshirib,
+// AYNAN SHU tg_<id> custom token beradi — shu orqali web va Mini App BIR XIL
+// akkaunt (buyurtma tarixi ownerUid=tg_<id> bo'yicha birlashadi).
+//
+// MUHIM: Login Widget HMAC'i Mini App'dan (telegramAuth) FARQLI:
+//   secret = SHA256(botToken)                 (Mini App: HMAC("WebAppData", token))
+//   data_check_string = "hash"dan tashqari barcha kalit=qiymat, alifbo
+//                        tartibida, '\n' bilan birlashtirilgan
+//   computed = HMAC-SHA256(secret, data_check_string) hex; hash bilan solishtir.
+exports.telegramLoginAuth = onCall(async (req) => {
+  const data = (req.data && typeof req.data === "object") ? req.data : {};
+  const hash = data.hash;
+  if (!hash || typeof hash !== "string") {
+    throw new HttpsError("invalid-argument", "hash yo'q");
+  }
+  const cfg = await getTg();
+  if (!cfg || !cfg.botToken) {
+    throw new HttpsError("failed-precondition", "bot token yo'q");
+  }
+  // data_check_string: hash'dan tashqari barcha maydonlar (alifbo tartibida)
+  const dataCheck = Object.keys(data)
+    .filter((k) => k !== "hash" && data[k] !== null && data[k] !== undefined)
+    .sort()
+    .map((k) => `${k}=${data[k]}`)
+    .join("\n");
+  const secret = crypto.createHash("sha256").update(cfg.botToken).digest();
+  const computed = crypto
+    .createHmac("sha256", secret)
+    .update(dataCheck)
+    .digest("hex");
+  if (computed !== hash) {
+    throw new HttpsError("permission-denied", "Login imzosi noto'g'ri");
+  }
+  // Yangilik (replay hujumidan himoya): auth_date 1 kundan eski bo'lmasin
+  const authDate = Number(data.auth_date) || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (!authDate || now - authDate > 86400) {
+    throw new HttpsError("deadline-exceeded", "Login muddati o'tgan");
+  }
+  if (!data.id) throw new HttpsError("invalid-argument", "id yo'q");
+  const uid = `tg_${data.id}`;
+  const token = await getAuth().createCustomToken(uid, {
+    tgId: String(data.id),
+  });
+  return { token };
+});
+
 // Yangi buyurtma -> do'kon egasiga xabar
 exports.onNewOrder = onDocumentCreated("orders/{id}", async (event) => {
   let o = event.data && event.data.data();

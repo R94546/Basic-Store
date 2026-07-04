@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'tg_user.dart';
 
@@ -7,6 +9,13 @@ external _Telegram? get _telegram;
 
 extension type _Telegram(JSObject _) implements JSObject {
   external _WebApp? get WebApp;
+  // Login Widget (telegram-widget.js) — oddiy brauzerda kirish uchun
+  external _TgLogin? get Login;
+}
+
+extension type _TgLogin(JSObject _) implements JSObject {
+  // auth(options, callback): callback'ga user obyekti YOKI false keladi
+  external void auth(JSObject options, JSFunction callback);
 }
 
 extension type _WebApp(JSObject _) implements JSObject {
@@ -89,4 +98,64 @@ void expand() {
   try {
     _webApp?.disableVerticalSwipes();
   } catch (_) {}
+}
+
+/// Login Widget skripti (telegram-widget.js) yuklanganmi — oddiy brauzerda
+/// «Telegram bilan kirish» tugmasini ko'rsatish uchun.
+bool hasLoginWidget() {
+  try {
+    return _telegram?.Login != null;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Telegram Login Widget popup'ini ochadi (`Telegram.Login.auth`).
+/// Muvaffaqiyatda foydalanuvchi maydonlarini (id, first_name, username,
+/// photo_url, auth_date, hash ...) Dart map sifatida qaytaradi — server
+/// aynan shu maydonlar bo'yicha HMAC tekshiradi. Bekor qilinsa/xatoda null.
+///
+/// MUHIM: Telegram yuborgan BARCHA maydonlar o'zgartirilmasdan uzatiladi —
+/// aks holda serverdagi data_check_string mos kelmay, imzo buziladi.
+Future<Map<String, Object?>?> widgetLogin(String botId) {
+  final completer = Completer<Map<String, Object?>?>();
+  try {
+    final login = _telegram?.Login;
+    if (login == null || botId.isEmpty) return Future.value(null);
+
+    final opts = JSObject();
+    opts['bot_id'] = botId.toJS;
+    // Bot foydalanuvchiga xabar yubora olishi uchun (buyurtma holati bildirishi)
+    opts['request_access'] = 'write'.toJS;
+
+    void cb(JSAny? user) {
+      if (completer.isCompleted) return;
+      try {
+        final dart = user.dartify();
+        if (dart is Map) {
+          final map = <String, Object?>{};
+          dart.forEach((k, v) {
+            if (k == null) return;
+            // Butun sonli double -> int (JSON'da toza raqam: id/auth_date)
+            if (v is double && v.isFinite && v == v.truncateToDouble()) {
+              map[k.toString()] = v.toInt();
+            } else {
+              map[k.toString()] = v;
+            }
+          });
+          completer.complete(map);
+        } else {
+          // false / null -> bekor qilindi yoki xato
+          completer.complete(null);
+        }
+      } catch (_) {
+        completer.complete(null);
+      }
+    }
+
+    login.auth(opts, cb.toJS);
+  } catch (_) {
+    if (!completer.isCompleted) completer.complete(null);
+  }
+  return completer.future;
 }

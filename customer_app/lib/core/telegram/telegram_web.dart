@@ -18,6 +18,14 @@ extension type _TgLogin(JSObject _) implements JSObject {
   external void auth(JSObject options, JSFunction callback);
 }
 
+// JS'ning global Object.keys / String — obyekt maydonlarini xavfsiz o'qish uchun
+// (dartify() dart2js'da katta butun sonlarda "Int64 accessor" xatosi beradi).
+@JS('Object.keys')
+external JSArray<JSString> _objectKeys(JSObject o);
+
+@JS('String')
+external JSString _jsToString(JSAny? value);
+
 extension type _WebApp(JSObject _) implements JSObject {
   external void ready();
   external void expand();
@@ -131,23 +139,30 @@ Future<Map<String, Object?>?> widgetLogin(String botId) {
     void cb(JSAny? user) {
       if (completer.isCompleted) return;
       try {
-        final dart = user.dartify();
-        if (dart is Map) {
-          final map = <String, Object?>{};
-          dart.forEach((k, v) {
-            if (k == null) return;
-            // Butun sonli double -> int (JSON'da toza raqam: id/auth_date)
-            if (v is double && v.isFinite && v == v.truncateToDouble()) {
-              map[k.toString()] = v.toInt();
-            } else {
-              map[k.toString()] = v;
-            }
-          });
-          completer.complete(map);
-        } else {
-          // false / null -> bekor qilindi yoki xato
+        // false / null / obyekt emas -> bekor qilindi yoki xato
+        if (user == null || !user.isA<JSObject>()) {
           completer.complete(null);
+          return;
         }
+        final obj = user as JSObject;
+        // Har bir maydonni JS String() bilan o'qiymiz — bu serverdagi
+        // `${data[k]}` bilan AYNAN mos (id/auth_date toza butun-son stringi),
+        // dartify()'siz => "Int64 accessor" xatosi yo'q. Barcha maydonlar
+        // o'zgartirilmasdan uzatiladi (HMAC data_check_string mos kelishi uchun).
+        final map = <String, Object?>{};
+        final keys = _objectKeys(obj).toDart;
+        for (final kJs in keys) {
+          final k = kJs.toDart;
+          final v = obj.getProperty<JSAny?>(kJs);
+          if (v == null) continue;
+          map[k] = _jsToString(v).toDart;
+        }
+        // hash bo'lmasa — imzosiz javob (bekor/xato)
+        if (map['hash'] == null || (map['hash'] as String).isEmpty) {
+          completer.complete(null);
+          return;
+        }
+        completer.complete(map);
       } catch (_) {
         completer.complete(null);
       }

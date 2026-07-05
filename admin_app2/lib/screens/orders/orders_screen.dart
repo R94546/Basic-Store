@@ -8,6 +8,7 @@ import '../../core/l10n/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/order.dart';
 import '../../providers/order_provider.dart';
+import '../../providers/product_provider.dart';
 
 /// Buyurtmalar — mijoz_app dan kelgan buyurtmalarni boshqarish ekrani.
 class OrdersScreen extends StatefulWidget {
@@ -26,6 +27,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Real-time tinglovchi
       context.read<OrderProvider>().listenToOrders();
+      // Shtrix kodlarni ko'rsatish uchun mahsulotlar (yuklanmagan bo'lsa)
+      final products = context.read<ProductProvider>();
+      if (products.products.isEmpty) products.loadProducts();
     });
   }
 
@@ -262,6 +266,7 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeStr = DateFormat('dd.MM HH:mm').format(order.createdAt);
+    final products = context.watch<ProductProvider>();
 
     return GlassCard(
       padding: const EdgeInsets.all(16),
@@ -343,29 +348,59 @@ class _OrderCard extends StatelessWidget {
 
           const Divider(height: 24),
 
-          // ===== Mahsulotlar =====
-          ...order.items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
+          // ===== Mahsulotlar (shtrix kod bilan) =====
+          ...order.items.map((item) {
+            final barcode = products.barcodeForItem(
+              item.productId,
+              size: item.size,
+              color: item.color,
+            );
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      _itemTitle(item),
-                      style: const TextStyle(
-                          fontSize: 14, color: AppTheme.textPrimary),
-                      overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _itemTitle(item),
+                          style: const TextStyle(
+                              fontSize: 14, color: AppTheme.textPrimary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        '${money(item.totalPrice)} ${loc.t('common.sum')}',
+                        style: const TextStyle(
+                            fontSize: 14, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                  if (barcode != null && barcode.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, left: 2),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.qr_code_2,
+                              size: 14, color: AppTheme.accentOrange),
+                          const SizedBox(width: 4),
+                          SelectableText(
+                            barcode,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                              letterSpacing: 0.5,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${money(item.totalPrice)} ${loc.t('common.sum')}',
-                    style: const TextStyle(
-                        fontSize: 14, color: AppTheme.textSecondary),
-                  ),
                 ],
               ),
-            ),
-          ),
+            );
+          }),
 
           // ===== Manzil / izoh =====
           if (order.customerAddress != null &&

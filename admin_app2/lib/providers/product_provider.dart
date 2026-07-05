@@ -30,6 +30,30 @@ class ProductProvider extends ChangeNotifier {
   List<ProductVariant> cachedVariants(String productId) =>
       _variantsByProduct[productId] ?? const [];
 
+  /// Mahsulotni id bo'yicha xotiradan topadi (yuklanmagan bo'lsa null).
+  Product? byId(String id) {
+    for (final p in _products) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// Buyurtma tovari uchun shtrix kod — variant (size/color) bo'lsa variant
+  /// kodi, aks holda tovar kodi. Admin online buyurtmani tez topishi uchun.
+  String? barcodeForItem(String productId, {String? size, String? color}) {
+    final p = byId(productId);
+    if (p == null) return null;
+    if (p.hasVariants && (size != null || color != null)) {
+      for (final v in cachedVariants(productId)) {
+        if ((size == null || v.size == size) &&
+            (color == null || v.color == color)) {
+          if (v.barcode.isNotEmpty) return v.barcode;
+        }
+      }
+    }
+    return p.barcode.isNotEmpty ? p.barcode : null;
+  }
+
   /// Mahsulotlarni yuklash va qidiruv indekslarini qayta qurish.
   Future<void> loadProducts() async {
     _isLoading = true;

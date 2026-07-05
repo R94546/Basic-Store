@@ -16,6 +16,7 @@ class Sale {
   final String? customerName;  // Qarzga sotilganda mijoz nomi
   final String? note;          // Chek izohi
   final String? cashierName;
+  final String? source;        // 'online' -> Telegram/web buyurtmasidan
 
   Sale({
     this.id,
@@ -32,7 +33,11 @@ class Sale {
     this.customerName,
     this.note,
     this.cashierName,
+    this.source,
   });
+
+  /// Online (Telegram/web) sotuvimi
+  bool get isOnline => source == 'online' || cashierName == 'Online';
 
   /// To'lov usulining o'qiladigan nomi
   String get paymentLabel {
@@ -67,6 +72,7 @@ class Sale {
       customerName: data['customerName'],
       note: data['note'],
       cashierName: data['cashierName'],
+      source: data['source'],
     );
   }
 

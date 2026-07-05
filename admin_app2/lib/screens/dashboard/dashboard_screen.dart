@@ -325,10 +325,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             CircleAvatar(
                               radius: 18,
-                              backgroundColor:
-                                  AppTheme.accentGreen.withOpacity(0.2),
-                              child: const Icon(Icons.receipt_long,
-                                  size: 18, color: AppTheme.accentGreen),
+                              backgroundColor: sale.isOnline
+                                  ? const Color(0xFF2AABEE).withOpacity(0.2)
+                                  : AppTheme.accentGreen.withOpacity(0.2),
+                              child: Icon(
+                                  sale.isOnline
+                                      ? Icons.language
+                                      : Icons.receipt_long,
+                                  size: 18,
+                                  color: sale.isOnline
+                                      ? const Color(0xFF2AABEE)
+                                      : AppTheme.accentGreen),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -336,9 +343,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    sale.number != null
-                                        ? '#${sale.number}  ${loc.payLabel(sale.paymentMethod)}'
-                                        : loc.payLabel(sale.paymentMethod),
+                                    sale.isOnline
+                                        ? 'Online  ·  ${loc.payLabel(sale.paymentMethod)}'
+                                        : (sale.number != null
+                                            ? '#${sale.number}  ${loc.payLabel(sale.paymentMethod)}'
+                                            : loc.payLabel(sale.paymentMethod)),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: AppTheme.textPrimary,

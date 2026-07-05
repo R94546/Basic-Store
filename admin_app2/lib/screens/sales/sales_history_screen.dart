@@ -305,25 +305,64 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 
                 const SizedBox(height: 8),
                 
-                // To'lov usuli
+                // To'lov usuli / manba
                 Row(
                   children: [
                     Icon(
-                      sale.paymentMethod == 'cash' ? Icons.payments : Icons.credit_card,
+                      sale.isOnline
+                          ? Icons.language
+                          : (sale.paymentMethod == 'cash'
+                              ? Icons.payments
+                              : Icons.credit_card),
                       size: 16,
                       color: AppTheme.textSecondary,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      loc.payLabel(sale.paymentMethod),
+                      sale.isOnline
+                          ? 'Online (${loc.payLabel(sale.paymentMethod)})'
+                          : loc.payLabel(sale.paymentMethod),
                       style: const TextStyle(color: AppTheme.textSecondary),
                     ),
+                    if (sale.isOnline) ...[
+                      const SizedBox(width: 8),
+                      const _OnlineBadge(),
+                    ],
                   ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Online (Telegram/web) sotuv belgisi
+class _OnlineBadge extends StatelessWidget {
+  const _OnlineBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    const c = Color(0xFF2AABEE);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.language, size: 12, color: c),
+          SizedBox(width: 4),
+          Text(
+            'Online',
+            style: TextStyle(
+                fontSize: 11, color: c, fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
@@ -430,12 +469,20 @@ class _SaleListItem extends StatelessWidget {
                     style: const TextStyle(color: AppTheme.textPrimary),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${sale.items.fold<int>(0, (s, i) => s + i.quantity)} $itemsUnit',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        '${sale.items.fold<int>(0, (s, i) => s + i.quantity)} $itemsUnit',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (sale.isOnline) ...[
+                        const SizedBox(width: 8),
+                        const _OnlineBadge(),
+                      ],
+                    ],
                   ),
                 ],
               ),

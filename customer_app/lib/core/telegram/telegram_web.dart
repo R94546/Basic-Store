@@ -163,14 +163,15 @@ Future<Map<String, Object?>?> widgetLogin(String botId) {
           return;
         }
         completer.complete(map);
-      } catch (_) {
-        completer.complete(null);
+      } catch (e) {
+        // Diagnostika: xatoni yutmasdan yuzaga chiqaramiz
+        completer.completeError('widgetLogin.cb: $e');
       }
     }
 
     login.auth(opts, cb.toJS);
-  } catch (_) {
-    if (!completer.isCompleted) completer.complete(null);
+  } catch (e) {
+    if (!completer.isCompleted) completer.completeError('widgetLogin.auth: $e');
   }
   return completer.future;
 }

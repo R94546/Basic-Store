@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
+import 'core/functions_call.dart';
 import 'core/theme/app_theme.dart';
 import 'core/l10n/locale_provider.dart';
 import 'core/telegram/telegram_service.dart';
@@ -29,11 +29,10 @@ void main() async {
       final initData = TelegramService.rawInitData;
       if (initData != null) {
         try {
-          final res = await FirebaseFunctions.instance
-              .httpsCallable('telegramAuth')
-              .call({'initData': initData});
-          final token = (res.data as Map)['token'] as String?;
-          if (token != null) {
+          // HTTP orqali (cloud_functions web'da Int64 xatosi beradi)
+          final res = await callFunction('telegramAuth', {'initData': initData});
+          final token = (res?['token'] ?? '').toString();
+          if (token.isNotEmpty) {
             await FirebaseAuth.instance.signInWithCustomToken(token);
           }
         } catch (_) {}

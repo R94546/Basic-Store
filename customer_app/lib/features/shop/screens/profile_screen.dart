@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import 'package:customer_app/core/functions_call.dart';
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/telegram/telegram_service.dart';
@@ -191,9 +191,8 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
 
   Future<void> _fetchBotId() async {
     try {
-      final res =
-          await FirebaseFunctions.instance.httpsCallable('telegramLoginInfo').call();
-      final id = ((res.data as Map)['botId'] ?? '').toString();
+      final res = await callFunction('telegramLoginInfo');
+      final id = (res?['botId'] ?? '').toString();
       if (mounted && id.isNotEmpty) setState(() => _botId = id);
     } catch (_) {
       // Jim — tap paytida qayta urinamiz
@@ -214,14 +213,13 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
     }
     setState(() => _loading = true);
     try {
-      final fns = FirebaseFunctions.instance;
       // 1) Bot ID — oldindan yuklangan bo'lsa darhol, aks holda shu yerda
       //    (bosishdan ~5s ichida window.open baribir ochiladi — transient
       //    user activation). Maxfiy token OCHILMAYDI, faqat ochiq id.
       var botId = _botId ?? '';
       if (botId.isEmpty) {
-        final infoRes = await fns.httpsCallable('telegramLoginInfo').call();
-        botId = ((infoRes.data as Map)['botId'] ?? '').toString();
+        final infoRes = await callFunction('telegramLoginInfo');
+        botId = (infoRes?['botId'] ?? '').toString();
         _botId = botId;
       }
       if (botId.isEmpty) throw Exception('bot id bo\'sh');
@@ -231,9 +229,9 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
       if (user == null) return;
 
       // 3) Server HMAC tekshirib tg_<id> custom token beradi
-      final authRes = await fns.httpsCallable('telegramLoginAuth').call(user);
-      final token = (authRes.data as Map)['token'] as String?;
-      if (token == null || token.isEmpty) throw Exception('token yo\'q');
+      final authRes = await callFunction('telegramLoginAuth', user);
+      final token = (authRes?['token'] ?? '').toString();
+      if (token.isEmpty) throw Exception('token yo\'q');
 
       // 4) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
       await FirebaseAuth.instance.signInWithCustomToken(token);

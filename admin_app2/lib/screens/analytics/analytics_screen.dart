@@ -88,6 +88,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           int revenue = 0;
           int discount = 0;
           int profit = 0;
+          int onlineRevenue = 0; // Telegram/web (online) savdo
+          int onlineCount = 0;
           final payTotals = <String, int>{'cash': 0, 'card': 0, 'debt': 0};
           final categoryTotals = <String, int>{};
           final productQty = <String, int>{};
@@ -95,6 +97,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           for (final sale in sales) {
             revenue += sale.totalAmount;
             discount += sale.discountAmount;
+            if (sale.isOnline) {
+              onlineRevenue += sale.totalAmount;
+              onlineCount++;
+            }
             // To'lov turlari bo'yicha aniq bo'lish: aralash to'lovda har
             // usulning o'z summasini (payments) hisoblaymiz.
             if (sale.payments.isNotEmpty) {
@@ -128,7 +134,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(height: 24),
 
               // KPI row
-              _buildKpiRow(revenue, profit, discount, sales.length),
+              _buildKpiRow(revenue, profit, discount, sales.length,
+                  onlineRevenue, onlineCount),
               const SizedBox(height: 24),
 
               // Pie charts row (responsive)
@@ -227,7 +234,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildKpiRow(int revenue, int profit, int discount, int count) {
+  Widget _buildKpiRow(int revenue, int profit, int discount, int count,
+      int onlineRevenue, int onlineCount) {
     final loc = context.read<LocaleProvider>();
     final items = <Widget>[
       _KpiCard(
@@ -235,6 +243,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         value: _currencyFormat.format(revenue),
         icon: Icons.payments_rounded,
         color: AppTheme.accentGreen,
+      ),
+      _KpiCard(
+        title: loc.t('session.onlineSales'),
+        value: '${_currencyFormat.format(onlineRevenue)}'
+            ' · ${NumberFormat.decimalPattern().format(onlineCount)}',
+        icon: Icons.language_rounded,
+        color: const Color(0xFF2AABEE),
       ),
       _KpiCard(
         title: loc.t('dash.profit'),

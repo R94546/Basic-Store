@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -105,7 +106,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final loc = context.read<LocaleProvider>();
     final result = await Navigator.push<MapPickerResult>(
       context,
-      MaterialPageRoute(
+      SwipeablePageRoute(
         builder: (_) => MapPickerScreen(
           initialLat: _selectedLat,
           initialLng: _selectedLng,

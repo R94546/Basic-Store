@@ -1,21 +1,29 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:customer_app/core/functions_call.dart';
 import 'package:customer_app/core/customer_profile.dart';
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/telegram/telegram_service.dart';
+import '../widgets/avatar_image.dart';
 import 'orders_history_screen.dart';
+import 'edit_profile_screen.dart';
 
 // Telegram brendi ko'ki
 const Color _tgBlue = Color(0xFF2AABEE);
+// Do'kon aloqa + ilova havolasi
+const String _shopTelegram = 'https://t.me/Basics_StoreBot';
+const String _appUrl = 'https://zara-shop-automation-uz.web.app';
+const String _appVersion = '1.0.0';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -158,6 +166,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Chiqish tugmasi — faqat web'da, tg_ bilan kirgan bo'lsa
+  /// (Mini App'da avtomatik qayta kiradi, shuning uchun ko'rsatilmaydi).
+  bool get _showLogout {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return kIsWeb && !TelegramService.isInTelegram && uid.startsWith('tg_');
+  }
+
+  Future<void> _logout() async {
+    final loc = context.read<LocaleProvider>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: const RoundedRectangleBorder(),
+        title: Text(loc.t('profile.logout')),
+        content: Text(loc.t('profile.logoutConfirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.t('common.close').toUpperCase()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(loc.t('profile.logout').toUpperCase(),
+                style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await CustomerProfile.clearTg();
+      await FirebaseAuth.instance.signOut();
+      // Buyurtma berish uchun auth kerak — anonimga qaytamiz
+      await FirebaseAuth.instance.signInAnonymously();
+      await _reloadProfile();
+    } catch (_) {
+      if (mounted) _reloadProfile();
+    }
+  }
+
+  Future<void> _editProfile() async {
+    await Navigator.push(
+      context,
+      SwipeablePageRoute(builder: (_) => const EditProfileScreen()),
+    );
+    await _reloadProfile(); // ism o'zgargan bo'lishi mumkin
+  }
+
+  Future<void> _openLink(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  void _about(LocaleProvider loc) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: const RoundedRectangleBorder(),
+        title: Text(loc.t('profile.about')),
+        content: Text(loc.t('profile.aboutBody')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(loc.t('common.close').toUpperCase()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _share(LocaleProvider loc) async {
+    await Clipboard.setData(const ClipboardData(text: _appUrl));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(loc.t('profile.shareCopied'))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocaleProvider>();
@@ -190,6 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 photo: _photo,
                 isTgLoggedIn: _isTgLoggedIn,
                 welcome: loc.t('home.welcome'),
+                guestLabel: loc.t('profile.guest'),
               ),
             ),
 
@@ -234,41 +322,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 28),
 
-            // MENYU
-            _SectionLabel(loc.t('profile.title')),
+            // HISOB
+            _SectionLabel(loc.t('profile.account')),
             _MenuTile(
               icon: Icons.receipt_long_outlined,
               title: loc.t('profile.myOrders'),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const OrdersHistoryScreen()),
+                  SwipeablePageRoute(builder: (_) => const OrdersHistoryScreen()),
                 );
               },
             ),
             _MenuTile(
+              icon: Icons.edit_outlined,
+              title: loc.t('profile.edit'),
+              onTap: _editProfile,
+            ),
+
+            const SizedBox(height: 20),
+
+            // QO'SHIMCHA
+            _SectionLabel(loc.t('profile.more')),
+            _MenuTile(
               icon: Icons.headset_mic_outlined,
               title: loc.t('profile.contact'),
-              onTap: () {},
+              onTap: () => _openLink(_shopTelegram),
+            ),
+            _MenuTile(
+              icon: Icons.ios_share_outlined,
+              title: loc.t('profile.share'),
+              onTap: () => _share(loc),
             ),
             _MenuTile(
               icon: Icons.info_outline,
               title: loc.t('profile.about'),
-              onTap: () {},
+              onTap: () => _about(loc),
             ),
+
+            // CHIQISH (web + tg)
+            if (_showLogout) ...[
+              const SizedBox(height: 20),
+              _MenuTile(
+                icon: Icons.logout,
+                title: loc.t('profile.logout'),
+                color: Colors.red,
+                onTap: _logout,
+              ),
+            ],
 
             const SizedBox(height: 36),
 
-            // Brend footer
+            // Brend footer + versiya
             Center(
-              child: Text(
-                'BASIC STORE',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 13,
-                  letterSpacing: 4,
-                  color: Colors.grey[400],
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    'BASIC STORE',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 13,
+                      letterSpacing: 4,
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${loc.t('profile.version')} $_appVersion',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -286,6 +409,7 @@ class _ProfileHeaderCard extends StatelessWidget {
   final String photo;
   final bool isTgLoggedIn;
   final String welcome;
+  final String guestLabel;
 
   const _ProfileHeaderCard({
     required this.name,
@@ -293,6 +417,7 @@ class _ProfileHeaderCard extends StatelessWidget {
     required this.photo,
     required this.isTgLoggedIn,
     required this.welcome,
+    required this.guestLabel,
   });
 
   @override
@@ -327,14 +452,11 @@ class _ProfileHeaderCard extends StatelessWidget {
               ),
             ),
             clipBehavior: Clip.antiAlias,
-            child: (photo.isNotEmpty)
-                ? CachedNetworkImage(
-                    imageUrl: photo,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
-                        const Icon(Icons.person, color: Colors.grey, size: 32),
-                  )
-                : const Icon(Icons.person, color: Colors.grey, size: 32),
+            child: AvatarImage(
+              url: photo,
+              size: 68,
+              fallback: const Icon(Icons.person, color: Colors.grey, size: 32),
+            ),
           ),
           const SizedBox(width: 16),
           // Ism / username / belgi
@@ -373,7 +495,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                   _Badge(
                     color: Colors.grey.shade500,
                     icon: Icons.person_outline,
-                    text: 'Mehmon',
+                    text: guestLabel,
                   ),
               ],
             ),
@@ -552,35 +674,38 @@ class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
+  final Color? color;
 
   const _MenuTile({
     required this.icon,
     required this.title,
     required this.onTap,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final c = color ?? Colors.black;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: Colors.black87),
+            Icon(icon, size: 20, color: color ?? Colors.black87),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.2,
-                  color: Colors.black,
+                  color: c,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey),
+            Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey[400]),
           ],
         ),
       ),

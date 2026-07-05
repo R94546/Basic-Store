@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 import 'package:customer_app/core/l10n/locale_provider.dart';
 import '../models/cart_item.dart';
@@ -21,7 +22,7 @@ class ProductCard extends StatelessWidget {
   void _openDetail(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
+      SwipeablePageRoute(builder: (_) => ProductDetailScreen(product: product)),
     );
   }
 

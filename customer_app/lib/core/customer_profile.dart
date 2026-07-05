@@ -42,4 +42,18 @@ class CustomerProfile {
     if (v.trim().isEmpty) return;
     await (await SharedPreferences.getInstance()).setString(_kAddress, v.trim());
   }
+
+  /// Ismni tahrirlash (profil «Tahrirlash» oynasidan) — headerда ko'rsatiladi.
+  static Future<void> saveName(String v) async {
+    await (await SharedPreferences.getInstance()).setString(_kName, v.trim());
+  }
+
+  /// Chiqishda (logout) Telegram profilini tozalaydi. Telefon/manzil qoladi
+  /// (keyingi buyurtmani to'ldirish uchun foydali).
+  static Future<void> clearTg() async {
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_kName);
+    await p.remove(_kUsername);
+    await p.remove(_kPhoto);
+  }
 }

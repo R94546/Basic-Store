@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -157,7 +158,7 @@ class CartScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+                    SwipeablePageRoute(builder: (_) => const CheckoutScreen()),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,

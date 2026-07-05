@@ -166,5 +166,37 @@ class AppStrings {
       'uz': 'Kirishda xatolik. Qayta urinib ko\'ring',
       'ru': 'Ошибка входа. Попробуйте ещё раз'
     },
+    'profile.guest': {'uz': 'Mehmon', 'ru': 'Гость'},
+    'profile.account': {'uz': 'Hisob', 'ru': 'Аккаунт'},
+    'profile.more': {'uz': 'Qo\'shimcha', 'ru': 'Дополнительно'},
+    'profile.logout': {'uz': 'Chiqish', 'ru': 'Выйти'},
+    'profile.logoutConfirm': {
+      'uz': 'Akkauntdan chiqasizmi? Qayta Telegram bilan kirsangiz, buyurtma tarixingiz qaytadi.',
+      'ru': 'Выйти из аккаунта? При повторном входе через Telegram история заказов вернётся.'
+    },
+    'profile.edit': {
+      'uz': 'Ma\'lumotlarni tahrirlash',
+      'ru': 'Редактировать данные'
+    },
+    'profile.editTitle': {'uz': 'Ma\'lumotlarim', 'ru': 'Мои данные'},
+    'profile.editHint': {
+      'uz': 'Bular keyingi buyurtmada avtomatik to\'ldiriladi',
+      'ru': 'Эти данные автоматически подставятся в следующий заказ'
+    },
+    'profile.name': {'uz': 'Ism familiya', 'ru': 'Имя и фамилия'},
+    'profile.phone': {'uz': 'Telefon', 'ru': 'Телефон'},
+    'profile.address': {'uz': 'Manzil', 'ru': 'Адрес'},
+    'profile.save': {'uz': 'Saqlash', 'ru': 'Сохранить'},
+    'profile.saved': {'uz': 'Saqlandi', 'ru': 'Сохранено'},
+    'profile.share': {'uz': 'Ilovani ulashish', 'ru': 'Поделиться приложением'},
+    'profile.shareCopied': {
+      'uz': 'Havola nusxalandi',
+      'ru': 'Ссылка скопирована'
+    },
+    'profile.version': {'uz': 'Versiya', 'ru': 'Версия'},
+    'profile.aboutBody': {
+      'uz': 'Basic Store — zamonaviy kiyim do\'koni. Sifatli mahsulotlar, tez yetkazib berish. Buyurtmalaringiz uchun rahmat!',
+      'ru': 'Basic Store — магазин современной одежды. Качественные товары и быстрая доставка. Спасибо за ваши заказы!'
+    },
   };
 }

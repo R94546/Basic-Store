@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:provider/provider.dart';
 
 import 'package:customer_app/core/l10n/locale_provider.dart';
@@ -89,7 +90,7 @@ class MenuScreen extends StatelessWidget {
                           // Navigate to category products
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
+                            SwipeablePageRoute(
                               builder: (context) => CategoryProductsScreen(
                                 categoryName: category.name,
                                 categoryId: category.id,

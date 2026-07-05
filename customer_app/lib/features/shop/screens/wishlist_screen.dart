@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 import '../providers/wishlist_provider.dart';
 import '../models/product_model.dart';
@@ -86,7 +87,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    SwipeablePageRoute(
                       builder: (context) =>
                           ProductDetailScreen(product: product),
                     ),

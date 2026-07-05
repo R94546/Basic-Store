@@ -14,6 +14,7 @@ import 'features/shop/providers/order_provider.dart';
 import 'features/shop/providers/wishlist_provider.dart';
 import 'features/shop/providers/video_background_provider.dart';
 import 'features/shop/providers/catalog_provider.dart';
+import 'features/shop/providers/shell_tab_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +60,7 @@ class CustomerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WishlistProvider()),
         ChangeNotifierProvider(create: (_) => VideoBackgroundProvider()),
         ChangeNotifierProvider(create: (_) => CatalogProvider()),
+        ChangeNotifierProvider(create: (_) => ShellTabProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()..load()),
       ],
       child: MaterialApp(

@@ -4,12 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/telegram/telegram_service.dart';
+import 'package:customer_app/core/customer_profile.dart';
 import '../providers/cart_provider.dart';
+import '../providers/shell_tab_provider.dart';
 import '../models/order_model.dart';
 import 'map_picker_screen.dart';
 
@@ -34,11 +35,51 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    // Telegram'dan ism avtomatik to'ldiriladi (mijoz o'zgartira oladi)
+    _prefill();
+  }
+
+  /// Ism/telefon/manzilni avtomatik to'ldirish (mijoz o'zgartira oladi):
+  /// - ism: Mini App TG profili yoki web-login saqlangan ismi
+  /// - telefon/manzil: oxirgi buyurtmadan saqlangan
+  Future<void> _prefill() async {
+    // Ism — avval jonli Telegram (Mini App), aks holda saqlangan web profili
     final tg = TelegramService.user;
     if (tg != null && tg.fullName.isNotEmpty) {
       _nameController.text = tg.fullName;
+    } else {
+      final savedName = await CustomerProfile.name();
+      if (savedName.isNotEmpty && _nameController.text.isEmpty) {
+        _nameController.text = savedName;
+      }
     }
+    // Telefon — saqlangan mahalliy 9 raqam (formatlab qo'yamiz)
+    final savedPhone = await CustomerProfile.phone();
+    if (savedPhone.isNotEmpty && _phoneController.text.isEmpty) {
+      final digits = _localDigits(savedPhone);
+      final local = digits.length > 9 ? digits.substring(digits.length - 9) : digits;
+      _phoneController.text = _formatUzPhone(local);
+    }
+    // Manzil — oxirgi kiritilgan (tavsiya)
+    final savedAddr = await CustomerProfile.address();
+    if (savedAddr.isNotEmpty && _addressController.text.isEmpty) {
+      _addressController.text = savedAddr;
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// 9 ta mahalliy raqamni "90 111 22 33" ko'rinishida (2 3 2 2)
+  String _formatUzPhone(String digits) {
+    const groups = [2, 3, 2, 2];
+    final buf = StringBuffer();
+    var i = 0;
+    for (final s in groups) {
+      if (i >= digits.length) break;
+      if (buf.isNotEmpty) buf.write(' ');
+      final end = (i + s) <= digits.length ? i + s : digits.length;
+      buf.write(digits.substring(i, end));
+      i = end;
+    }
+    return buf.toString();
   }
 
   @override
@@ -123,13 +164,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Save to Firestore
       await FirebaseFirestore.instance.collection('orders').add(order.toMap());
 
-      // Buyurtmalar tarixi uchun mijozni saqlash (telefon + Telegram id)
+      // Keyingi safar avtomatik to'ldirish uchun telefon + manzilni saqlash
       try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('customer_phone', normalizedPhone);
-        if (tg?.id != null) {
-          await prefs.setString('customer_tg_id', tg!.id);
-        }
+        await CustomerProfile.savePhone(normalizedPhone);
+        await CustomerProfile.saveAddress(_addressController.text.trim());
       } catch (_) {
         // Saqlashda xatolik bo'lsa ham buyurtma muvaffaqiyatli
       }
@@ -155,10 +193,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _showSuccessDialog() {
     final loc = context.read<LocaleProvider>();
+    // Shell tabini oldindan olamiz (dialog konteksti provayderni ko'rmasligi
+    // mumkin) — "Xaridni davom ettirish" bosh sahifaga o'tkazadi.
+    final tabs = context.read<ShellTabProvider>();
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: const RoundedRectangleBorder(),
         title: const Icon(
           Icons.check_circle_outline,
@@ -193,7 +234,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                // Bosh sahifaga o'tkazamiz va barcha ustma-ust ekranlarni yopamiz
+                tabs.setIndex(ShellTabProvider.home);
+                Navigator.of(dialogCtx).popUntil((route) => route.isFirst);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:customer_app/core/theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/menu_screen.dart';
@@ -10,26 +9,21 @@ import 'screens/wishlist_screen.dart';
 import 'screens/profile_screen.dart';
 import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
+import 'providers/shell_tab_provider.dart';
 
-class CustomerShell extends StatefulWidget {
+class CustomerShell extends StatelessWidget {
   const CustomerShell({super.key});
-
-  @override
-  State<CustomerShell> createState() => _CustomerShellState();
-}
-
-class _CustomerShellState extends State<CustomerShell> {
-  int _currentIndex = 0;
-
-  void _go(int i) => setState(() => _currentIndex = i);
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final wishlist = context.watch<WishlistProvider>();
+    final tabs = context.watch<ShellTabProvider>();
+    final currentIndex = tabs.index;
+    void go(int i) => tabs.setIndex(i);
 
     final screens = [
-      HomeScreen(onProfileTap: () => _go(5)),
+      HomeScreen(onProfileTap: () => go(5)),
       const SearchScreen(),
       const MenuScreen(),
       const CartScreen(),
@@ -39,7 +33,7 @@ class _CustomerShellState extends State<CustomerShell> {
 
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: screens,
       ),
       bottomNavigationBar: Container(
@@ -66,24 +60,24 @@ class _CustomerShellState extends State<CustomerShell> {
                 _NavItem(
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home,
-                  isActive: _currentIndex == 0,
-                  onTap: () => setState(() => _currentIndex = 0),
+                  isActive: currentIndex == 0,
+                  onTap: () => go(0),
                 ),
                 _NavItem(
                   icon: Icons.search,
                   activeIcon: Icons.search,
-                  isActive: _currentIndex == 1,
-                  onTap: () => setState(() => _currentIndex = 1),
+                  isActive: currentIndex == 1,
+                  onTap: () => go(1),
                 ),
                 // MENU - Text instead of icon (like ZARA)
                 GestureDetector(
-                  onTap: () => setState(() => _currentIndex = 2),
+                  onTap: () => go(2),
                   child: Text(
                     'MENU',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: _currentIndex == 2 ? FontWeight.bold : FontWeight.normal,
-                      color: _currentIndex == 2 ? Colors.black : Colors.grey,
+                      fontWeight: currentIndex == 2 ? FontWeight.bold : FontWeight.normal,
+                      color: currentIndex == 2 ? Colors.black : Colors.grey,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -91,22 +85,22 @@ class _CustomerShellState extends State<CustomerShell> {
                 _NavItem(
                   icon: Icons.shopping_bag_outlined,
                   activeIcon: Icons.shopping_bag,
-                  isActive: _currentIndex == 3,
-                  onTap: () => setState(() => _currentIndex = 3),
+                  isActive: currentIndex == 3,
+                  onTap: () => go(3),
                   badge: cart.itemCount,
                 ),
                 _NavItem(
                   icon: Icons.favorite_border,
                   activeIcon: Icons.favorite,
-                  isActive: _currentIndex == 4,
-                  onTap: () => setState(() => _currentIndex = 4),
+                  isActive: currentIndex == 4,
+                  onTap: () => go(4),
                   badge: wishlist.count,
                 ),
                 _NavItem(
                   icon: Icons.person_outline,
                   activeIcon: Icons.person,
-                  isActive: _currentIndex == 5,
-                  onTap: () => setState(() => _currentIndex = 5),
+                  isActive: currentIndex == 5,
+                  onTap: () => go(5),
                 ),
               ],
             ),

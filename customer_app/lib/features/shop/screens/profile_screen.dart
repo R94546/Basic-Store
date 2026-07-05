@@ -6,18 +6,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/functions_call.dart';
+import 'package:customer_app/core/customer_profile.dart';
 import 'package:customer_app/core/theme/app_theme.dart';
 import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/telegram/telegram_service.dart';
 import 'orders_history_screen.dart';
-
-// Telegram Login Widget'dan kelgan profil (web'da) — SharedPreferences kalitlari
-const _kTgName = 'tg_web_name';
-const _kTgUsername = 'tg_web_username';
-const _kTgPhoto = 'tg_web_photo';
 
 // Telegram brendi ko'ki
 const Color _tgBlue = Color(0xFF2AABEE);
@@ -82,10 +77,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else {
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (uid.startsWith('tg_')) {
-        final prefs = await SharedPreferences.getInstance();
-        name = prefs.getString(_kTgName) ?? '';
-        username = prefs.getString(_kTgUsername) ?? '';
-        photo = prefs.getString(_kTgPhoto) ?? '';
+        name = await CustomerProfile.name();
+        username = await CustomerProfile.username();
+        photo = await CustomerProfile.photo();
       }
     }
     if (mounted) {
@@ -137,13 +131,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await FirebaseAuth.instance.signInWithCustomToken(token);
 
       // 5) Profilni saqlaymiz (web'da keyin ko'rsatish uchun)
-      final prefs = await SharedPreferences.getInstance();
       final fn = (user['first_name'] ?? '').toString();
       final ln = (user['last_name'] ?? '').toString();
       final name = [fn, ln].where((s) => s.isNotEmpty).join(' ').trim();
-      await prefs.setString(_kTgName, name);
-      await prefs.setString(_kTgUsername, (user['username'] ?? '').toString());
-      await prefs.setString(_kTgPhoto, (user['photo_url'] ?? '').toString());
+      await CustomerProfile.saveTg(
+        name: name,
+        username: (user['username'] ?? '').toString(),
+        photo: (user['photo_url'] ?? '').toString(),
+      );
       await _reloadProfile();
     } catch (e) {
       if (mounted) _showError(loc, e.toString());

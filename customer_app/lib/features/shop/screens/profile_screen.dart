@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:customer_app/core/functions_call.dart';
 import 'package:customer_app/core/theme/app_theme.dart';
@@ -13,179 +14,86 @@ import 'package:customer_app/core/l10n/locale_provider.dart';
 import 'package:customer_app/core/telegram/telegram_service.dart';
 import 'orders_history_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+// Telegram Login Widget'dan kelgan profil (web'da) — SharedPreferences kalitlari
+const _kTgName = 'tg_web_name';
+const _kTgUsername = 'tg_web_username';
+const _kTgPhoto = 'tg_web_photo';
+
+// Telegram brendi ko'ki
+const Color _tgBlue = Color(0xFF2AABEE);
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final loc = context.watch<LocaleProvider>();
-
-    return Scaffold(
-      backgroundColor: CustomerTheme.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  loc.t('profile.title').toUpperCase(),
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ),
-            ),
-
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                children: [
-                  // Telegram foydalanuvchisi (Telegram'da ochilganda)
-                  _buildUserHeader(loc),
-
-                  // Oddiy brauzerda «Telegram bilan kirish» (yagona akkaunt)
-                  const _TelegramWebLoginTile(),
-
-                  // Language switch
-                  Text(
-                    loc.t('profile.language').toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _LangChip(
-                          label: "O'zbekcha",
-                          selected: loc.isUz,
-                          onTap: () => loc.setLang('uz'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _LangChip(
-                          label: 'Русский',
-                          selected: !loc.isUz,
-                          onTap: () => loc.setLang('ru'),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // My orders
-                  _ProfileMenuItem(
-                    title: loc.t('profile.myOrders').toUpperCase(),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const OrdersHistoryScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _ProfileMenuItem(
-                    title: loc.t('profile.contact').toUpperCase(),
-                    onTap: () {},
-                  ),
-                  _ProfileMenuItem(
-                    title: loc.t('profile.about').toUpperCase(),
-                    onTap: () {},
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserHeader(LocaleProvider loc) {
-    final tg = TelegramService.user;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 28),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF0F0F0),
-              shape: BoxShape.circle,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: (tg?.photoUrl != null && tg!.photoUrl!.isNotEmpty)
-                ? CachedNetworkImage(
-                    imageUrl: tg.photoUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
-                        const Icon(Icons.person, color: Colors.grey),
-                  )
-                : const Icon(Icons.person, color: Colors.grey, size: 30),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tg?.fullName.isNotEmpty == true
-                      ? tg!.fullName
-                      : loc.t('home.welcome'),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                if (tg?.username != null)
-                  Text('@${tg!.username}',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-/// Oddiy brauzerda (Mini App EMAS) «Telegram bilan kirish» tugmasi.
-/// Web'da, Telegram ichida emas va hali tg_ akkaunti bilan kirmagan bo'lsa
-/// ko'rinadi. Kirgach — server AYNAN SHU tg_<id> uid beradi, shu orqali web va
-/// Mini App bitta akkaunt (buyurtma tarixi birlashadi).
-class _TelegramWebLoginTile extends StatefulWidget {
-  const _TelegramWebLoginTile();
-
-  @override
-  State<_TelegramWebLoginTile> createState() => _TelegramWebLoginTileState();
-}
-
-class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
+class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = false;
   String? _botId; // oldindan yuklanadi (popup user-gesture ichida ochilishi uchun)
   StreamSubscription<User?>? _authSub;
 
+  // Ko'rsatiladigan profil (Mini App yoki web-login'dan)
+  String _name = '';
+  String _username = '';
+  String _photo = '';
+
   @override
   void initState() {
     super.initState();
-    // Kirgan/chiqilgandan keyin holatni yangilash uchun auth'ni kuzatamiz
     _authSub = FirebaseAuth.instance.userChanges().listen((_) {
-      if (mounted) setState(() {});
+      if (mounted) _reloadProfile();
     });
-    // Bot ID'ni OLDINDAN yuklab qo'yamiz — shunda tugma bosilganda popup
-    // to'g'ridan-to'g'ri (await'siz) ochiladi va brauzer uni bloklamaydi.
     if (kIsWeb && !TelegramService.isInTelegram) {
       _fetchBotId();
+    }
+    _reloadProfile();
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  bool get _isTgLoggedIn {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return TelegramService.isInTelegram || uid.startsWith('tg_');
+  }
+
+  bool get _showLoginButton {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return kIsWeb &&
+        !TelegramService.isInTelegram &&
+        TelegramService.canWebLogin &&
+        !uid.startsWith('tg_');
+  }
+
+  /// Profil ma'lumotini aniqlaydi: Mini App -> initData; aks holda web-login
+  /// saqlangan ma'lumot (agar tg_ bilan kirgan bo'lsa).
+  Future<void> _reloadProfile() async {
+    String name = '', username = '', photo = '';
+    final tg = TelegramService.user;
+    if (tg != null) {
+      name = tg.fullName;
+      username = tg.username ?? '';
+      photo = tg.photoUrl ?? '';
+    } else {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (uid.startsWith('tg_')) {
+        final prefs = await SharedPreferences.getInstance();
+        name = prefs.getString(_kTgName) ?? '';
+        username = prefs.getString(_kTgUsername) ?? '';
+        photo = prefs.getString(_kTgPhoto) ?? '';
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _name = name;
+        _username = username;
+        _photo = photo;
+      });
     }
   }
 
@@ -199,12 +107,6 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
     }
   }
 
-  @override
-  void dispose() {
-    _authSub?.cancel();
-    super.dispose();
-  }
-
   Future<void> _login() async {
     final loc = context.read<LocaleProvider>();
     if (!TelegramService.canWebLogin) {
@@ -213,9 +115,7 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
     }
     setState(() => _loading = true);
     try {
-      // 1) Bot ID — oldindan yuklangan bo'lsa darhol, aks holda shu yerda
-      //    (bosishdan ~5s ichida window.open baribir ochiladi — transient
-      //    user activation). Maxfiy token OCHILMAYDI, faqat ochiq id.
+      // 1) Bot ID — oldindan yuklangan bo'lsa darhol
       var botId = _botId ?? '';
       if (botId.isEmpty) {
         final infoRes = await callFunction('telegramLoginInfo');
@@ -224,7 +124,7 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
       }
       if (botId.isEmpty) throw Exception('bot id bo\'sh');
 
-      // 2) Login Widget popup — bekor qilinsa null (jim o'tamiz)
+      // 2) Login Widget popup — bekor qilinsa null
       final user = await TelegramService.widgetLogin(botId);
       if (user == null) return;
 
@@ -235,7 +135,16 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
 
       // 4) Kirish — uid endi tg_<id> (Mini App bilan bir xil)
       await FirebaseAuth.instance.signInWithCustomToken(token);
-      // userChanges tinglovchisi UI'ni yangilaydi
+
+      // 5) Profilni saqlaymiz (web'da keyin ko'rsatish uchun)
+      final prefs = await SharedPreferences.getInstance();
+      final fn = (user['first_name'] ?? '').toString();
+      final ln = (user['last_name'] ?? '').toString();
+      final name = [fn, ln].where((s) => s.isNotEmpty).join(' ').trim();
+      await prefs.setString(_kTgName, name);
+      await prefs.setString(_kTgUsername, (user['username'] ?? '').toString());
+      await prefs.setString(_kTgPhoto, (user['photo_url'] ?? '').toString());
+      await _reloadProfile();
     } catch (e) {
       if (mounted) _showError(loc, e.toString());
     } finally {
@@ -256,78 +165,351 @@ class _TelegramWebLoginTileState extends State<_TelegramWebLoginTile> {
 
   @override
   Widget build(BuildContext context) {
-    // Faqat oddiy brauzerda: Mini App'da kerak emas, mobil'da widget yo'q
-    if (!kIsWeb ||
-        TelegramService.isInTelegram ||
-        !TelegramService.canWebLogin) {
-      return const SizedBox.shrink();
-    }
-
     final loc = context.watch<LocaleProvider>();
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final loggedIn = uid.startsWith('tg_');
 
-    if (loggedIn) {
-      // Allaqachon Telegram akkaunti bilan kirgan
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 32),
-        child: Row(
+    return Scaffold(
+      backgroundColor: CustomerTheme.background,
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            const Icon(Icons.check_circle, color: Color(0xFF2AABEE), size: 20),
-            const SizedBox(width: 10),
+            // Sarlavha
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              child: Text(
+                loc.t('profile.title').toUpperCase(),
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 3,
+                ),
+              ),
+            ),
+
+            // Profil kartasi
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+              child: _ProfileHeaderCard(
+                name: _name,
+                username: _username,
+                photo: _photo,
+                isTgLoggedIn: _isTgLoggedIn,
+                welcome: loc.t('home.welcome'),
+              ),
+            ),
+
+            // «Telegram bilan kirish» (faqat kirmagan bo'lsa)
+            if (_showLoginButton)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+                child: _TgLoginButton(
+                  loading: _loading,
+                  label: loc.t('profile.tgLogin'),
+                  hint: loc.t('profile.tgLoginHint'),
+                  onTap: _login,
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            // TIL
+            _SectionLabel(loc.t('profile.language')),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _LangChip(
+                      label: "O'zbekcha",
+                      selected: loc.isUz,
+                      onTap: () => loc.setLang('uz'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _LangChip(
+                      label: 'Русский',
+                      selected: !loc.isUz,
+                      onTap: () => loc.setLang('ru'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // MENYU
+            _SectionLabel(loc.t('profile.title')),
+            _MenuTile(
+              icon: Icons.receipt_long_outlined,
+              title: loc.t('profile.myOrders'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OrdersHistoryScreen()),
+                );
+              },
+            ),
+            _MenuTile(
+              icon: Icons.headset_mic_outlined,
+              title: loc.t('profile.contact'),
+              onTap: () {},
+            ),
+            _MenuTile(
+              icon: Icons.info_outline,
+              title: loc.t('profile.about'),
+              onTap: () {},
+            ),
+
+            const SizedBox(height: 36),
+
+            // Brend footer
+            Center(
+              child: Text(
+                'BASIC STORE',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 13,
+                  letterSpacing: 4,
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Profil boshi — avatar + ism + @username + Telegram belgisi
+class _ProfileHeaderCard extends StatelessWidget {
+  final String name;
+  final String username;
+  final String photo;
+  final bool isTgLoggedIn;
+  final String welcome;
+
+  const _ProfileHeaderCard({
+    required this.name,
+    required this.username,
+    required this.photo,
+    required this.isTgLoggedIn,
+    required this.welcome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = name.isNotEmpty ? name : welcome;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: CustomerTheme.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F3F3),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isTgLoggedIn ? _tgBlue : Colors.grey.shade300,
+                width: 2,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: (photo.isNotEmpty)
+                ? CachedNetworkImage(
+                    imageUrl: photo,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) =>
+                        const Icon(Icons.person, color: Colors.grey, size: 32),
+                  )
+                : const Icon(Icons.person, color: Colors.grey, size: 32),
+          ),
+          const SizedBox(width: 16),
+          // Ism / username / belgi
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                if (username.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    '@$username',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                if (isTgLoggedIn)
+                  _Badge(
+                    color: _tgBlue,
+                    icon: Icons.verified,
+                    text: 'Telegram',
+                  )
+                else
+                  _Badge(
+                    color: Colors.grey.shade500,
+                    icon: Icons.person_outline,
+                    text: 'Mehmon',
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String text;
+
+  const _Badge({required this.color, required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// «Telegram bilan kirish» tugmasi + izoh
+class _TgLoginButton extends StatelessWidget {
+  final bool loading;
+  final String label;
+  final String hint;
+  final VoidCallback onTap;
+
+  const _TgLoginButton({
+    required this.loading,
+    required this.label,
+    required this.hint,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: loading ? null : onTap,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _tgBlue,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: _tgBlue.withValues(alpha: 0.6),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            icon: loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.send_rounded, size: 19),
+            label: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(Icons.lock_outline, size: 12, color: Colors.grey[500]),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
-                loc.t('profile.tgLoggedIn'),
-                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                hint,
+                style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
               ),
             ),
           ],
         ),
-      );
-    }
+      ],
+    );
+  }
+}
 
-    // Kirish tugmasi
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _loading ? null : _login,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2AABEE), // Telegram ko'k
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: const RoundedRectangleBorder(),
-              ),
-              icon: _loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.send, size: 18),
-              label: Text(
-                loc.t('profile.tgLogin').toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            loc.t('profile.tgLoginHint'),
-            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+          color: Colors.grey[500],
+        ),
       ),
     );
   }
@@ -348,12 +530,14 @@ class _LangChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? Colors.black : Colors.white,
           border: Border.all(color: Colors.black),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           label,
@@ -369,34 +553,39 @@ class _LangChip extends StatelessWidget {
   }
 }
 
-class _ProfileMenuItem extends StatelessWidget {
+class _MenuTile extends StatelessWidget {
+  final IconData icon;
   final String title;
   final VoidCallback onTap;
 
-  const _ProfileMenuItem({
+  const _MenuTile({
+    required this.icon,
     required this.title,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: GestureDetector(
-        onTap: onTap,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-                color: Colors.black,
+            Icon(icon, size: 20, color: Colors.black87),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                  color: Colors.black,
+                ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            const Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey),
           ],
         ),
       ),

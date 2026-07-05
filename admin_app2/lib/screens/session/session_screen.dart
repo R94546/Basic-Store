@@ -157,6 +157,15 @@ class _SessionScreenState extends State<SessionScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
+                          child: _infoTile(
+                              loc.t('session.onlineSales'),
+                              sum.onlineCount > 0
+                                  ? '${_money(sum.onlineSales)} (${sum.onlineCount})'
+                                  : _money(sum.onlineSales),
+                              const Color(0xFF2AABEE)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
                           child: _infoTile(loc.t('session.salesCount'),
                               '${sum.salesCount}', AppTheme.textPrimary),
                         ),

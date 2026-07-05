@@ -10,14 +10,22 @@ class SessionSummary {
   final int cardSales;
   final int debtSales;
   final int salesCount;
+  final int onlineSales; // Telegram/online yetkazib berish (naqd kassaga kirmaydi)
+  final int onlineCount;
   const SessionSummary({
     this.cashSales = 0,
     this.cardSales = 0,
     this.debtSales = 0,
     this.salesCount = 0,
+    this.onlineSales = 0,
+    this.onlineCount = 0,
   });
 
+  /// Do'kondagi (fizik) savdo — kassa hisobiga kiradi
   int get totalRevenue => cashSales + cardSales + debtSales;
+
+  /// Online bilan birga umumiy savdo
+  int get grandTotal => totalRevenue + onlineSales;
 }
 
 /// Kassa smenasi provideri — ochish/yopish, kirim/chiqim.
@@ -143,12 +151,19 @@ class SessionProvider extends ChangeNotifier {
           .where('createdAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(_current!.openedAt))
           .get();
-      int cash = 0, card = 0, debt = 0;
+      int cash = 0, card = 0, debt = 0, online = 0;
+      int physicalCount = 0, onlineCount = 0;
       for (final doc in snap.docs) {
         final data = doc.data();
-        // Online (yetkazib berish) sotuvlari fizik kassaga kirmaydi — kassa
-        // naqd hisobiga qo'shmaymiz, aks holda smena farqi noto'g'ri chiqadi.
-        if (data['source'] == 'online') continue;
+        // Online (yetkazib berish) sotuvlari fizik kassaga kirmaydi — naqd
+        // hisobiga qo'shmaymiz (aks holda smena farqi noto'g'ri chiqadi), lekin
+        // alohida ko'rsatish uchun yig'ib boramiz.
+        if (data['source'] == 'online') {
+          online += ((data['totalAmount'] ?? 0) as num).toInt();
+          onlineCount++;
+          continue;
+        }
+        physicalCount++;
         final payments = data['payments'] as Map<String, dynamic>?;
         if (payments != null && payments.isNotEmpty) {
           cash += ((payments['cash'] ?? 0) as num).toInt();
@@ -171,7 +186,9 @@ class SessionProvider extends ChangeNotifier {
         cashSales: cash,
         cardSales: card,
         debtSales: debt,
-        salesCount: snap.docs.length,
+        salesCount: physicalCount,
+        onlineSales: online,
+        onlineCount: onlineCount,
       );
     } catch (e) {
       debugPrint('Error session summary: $e');

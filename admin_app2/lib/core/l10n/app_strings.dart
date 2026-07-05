@@ -179,6 +179,7 @@ class AppStrings {
     'session.cardSales': {'uz': 'Karta', 'ru': 'Карта'},
     'session.debtSales': {'uz': 'Nasiya', 'ru': 'В долг'},
     'session.salesCount': {'uz': 'Sotuvlar', 'ru': 'Продаж'},
+    'session.onlineSales': {'uz': 'Online savdo', 'ru': 'Онлайн продажи'},
     'session.cashIn': {'uz': 'Kirim', 'ru': 'Внести'},
     'session.cashOut': {'uz': 'Chiqim', 'ru': 'Изъять'},
     'session.cashSales': {'uz': 'Naqd savdo', 'ru': 'Наличные продажи'},
